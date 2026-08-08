@@ -1,36 +1,87 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# 拾光 · 一个安静的文字社区
 
-## Getting Started
+基于 Next.js 15 + SQLite 构建的中文博客社区。支持用户注册登录、文章发布与随时编辑、点赞收藏、评论互动、站内通知，以及管理员后台的内容审核与用户管理。
 
-First, run the development server:
+## 快速开始
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install
+node scripts/seed.mjs   # 首次运行：创建数据库并写入演示数据
+npm run dev             # 开发模式，访问 http://localhost:3000
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+生产模式：
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```bash
+npm run build
+npm run start
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## 演示账号
 
-## Learn More
+| 角色 | 用户名 | 密码 |
+| --- | --- | --- |
+| 管理员 | `admin` | `Admin@2026` |
+| 普通用户 | `demo` | `Demo@2026` |
 
-To learn more about Next.js, take a look at the following resources:
+## 功能清单
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+### 公开区域
+- 首页：英雄区、热门标签、最新文章、社区真实数据
+- 文章列表：最新 / 热门排序、关键词搜索、分页
+- 文章详情：Markdown 渲染、阅读时长、浏览量、相关文章
+- 标签聚合页、作者主页（文章、简介、获赞统计）
+- 浅色 / 深色模式（跟随系统，可手动切换）
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+### 用户中心
+- 注册 / 登录 / 退出（JWT 会话，密码 bcrypt 加密）
+- 写作编辑器：标题、标签、封面关键词、摘要、正文，支持写作 / 预览切换
+- 草稿保存、提交审核、审核状态可见、驳回原因提示
+- 文章随时编辑、删除
+- 点赞、取消点赞；收藏、取消收藏（收藏页）
+- 评论文章、删除自己的评论（或文章下的评论）
+- 站内通知：收到点赞、收到评论、审核结果
+- 个人资料设置（昵称、简介、网站、头像样式）、修改密码
 
-## Deploy on Vercel
+### 管理员后台（`/admin`）
+- 仪表盘：用户、文章、待审核、评论统计
+- 帖子审核：通过 / 驳回（填写原因），按状态筛选
+- 用户管理：搜索、设为 / 取消管理员、禁用 / 解禁
+- 评论管理：隐藏 / 恢复显示
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## 审核机制
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+新文章提交后进入「待审核」状态，仅作者本人可见；管理员通过后公开。驳回时填写原因，作者编辑后可重新提交。已发布文章作者仍可随时编辑。
+
+## 技术栈
+
+- Next.js 15（App Router）+ TypeScript
+- Tailwind CSS v4 + Motion（前台动效）+ Phosphor Icons
+- Node 内置 SQLite（`node:sqlite`，无需额外数据库服务）
+- jose（JWT 会话）+ bcryptjs（密码哈希）+ zod（输入校验）
+- react-markdown（文章渲染）
+
+## 环境变量
+
+`.env.local`：
+
+```env
+AUTH_SECRET=<随机字符串，用于签名会话>
+# 部署在 HTTPS 域名时设为 true
+# COOKIE_SECURE=true
+```
+
+## 目录结构
+
+```
+app/            页面与 API 路由
+components/     共享组件（布局、卡片、编辑器、表单）
+lib/            数据库、认证、查询、校验、工具函数
+scripts/        种子数据与端到端测试脚本
+data/           本地 SQLite 数据库（已 gitignore）
+```
+
+## 备注
+
+- 文章封面当前使用 Picsum 种子图（taste-skill 允许的兜底方案）。如需品牌化封面，可后续接入图片生成能力替换。
+- 管理后台属于数据密集界面，未套用 taste-skill 的营销页设计规范（该规范明确不适用于后台面板），采用克制的表格化界面。

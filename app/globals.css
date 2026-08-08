@@ -1,26 +1,242 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+@custom-variant dark (&:where(.dark, .dark *));
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: var(--font-outfit), var(--font-noto), "PingFang SC",
+    "Microsoft YaHei", system-ui, sans-serif;
+  --font-mono: var(--font-outfit), ui-monospace, "SFMono-Regular", Menlo,
+    Consolas, monospace;
+  --color-accent-50: #f0fdf4;
+  --color-accent-100: #dcfce7;
+  --color-accent-200: #bbf7d0;
+  --color-accent-300: #86efac;
+  --color-accent-400: #4ade80;
+  --color-accent-500: #22c55e;
+  --color-accent-600: #16a34a;
+  --color-accent-700: #15803d;
+  --color-accent-800: #166534;
+  --color-accent-900: #14532d;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+:root {
+  --paper: #fafaf9;
+  --paper-deep: #f5f5f4;
+  --ink: #1c1917;
+  --ink-soft: #57534e;
+  --ink-faint: #78716c;
+  --line: #e7e5e4;
+  --accent: #15803d;
+}
+
+.dark {
+  --paper: #0c0a09;
+  --paper-deep: #1c1917;
+  --ink: #e7e5e4;
+  --ink-soft: #a8a29e;
+  --ink-faint: #78716c;
+  --line: #292524;
+  --accent: #4ade80;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
   }
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+::selection {
+  background: var(--accent);
+  color: #fff;
+}
+
+.dark ::selection {
+  background: var(--accent);
+  color: #0c0a09;
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* 文章正文排版 */
+.md-body {
+  font-size: 1.0625rem;
+  line-height: 1.9;
+  color: var(--ink-soft);
+  overflow-wrap: break-word;
+}
+
+.md-body > * + * {
+  margin-top: 1.25em;
+}
+
+.md-body h1,
+.md-body h2,
+.md-body h3,
+.md-body h4 {
+  color: var(--ink);
+  font-weight: 700;
+  line-height: 1.35;
+  letter-spacing: -0.01em;
+}
+
+.md-body h1 {
+  font-size: 1.75rem;
+}
+
+.md-body h2 {
+  font-size: 1.4rem;
+  margin-top: 2em;
+}
+
+.md-body h3 {
+  font-size: 1.2rem;
+}
+
+.md-body a {
+  color: var(--accent);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.md-body strong {
+  color: var(--ink);
+  font-weight: 700;
+}
+
+.md-body ul,
+.md-body ol {
+  padding-left: 1.5em;
+}
+
+.md-body ul {
+  list-style: disc;
+}
+
+.md-body ol {
+  list-style: decimal;
+}
+
+.md-body li + li {
+  margin-top: 0.4em;
+}
+
+.md-body blockquote {
+  border-left: 3px solid var(--accent);
+  padding: 0.25em 0 0.25em 1.25em;
+  color: var(--ink-soft);
+  font-style: normal;
+}
+
+.md-body code {
+  font-family: var(--font-mono);
+  font-size: 0.875em;
+  background: var(--paper-deep);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 0.15em 0.4em;
+  color: var(--ink);
+}
+
+.md-body pre {
+  background: #1c1917;
+  color: #e7e5e4;
+  border-radius: 12px;
+  padding: 1.25em 1.5em;
+  overflow-x: auto;
+  font-size: 0.875rem;
+  line-height: 1.7;
+}
+
+.dark .md-body pre {
+  background: #0c0a09;
+  border: 1px solid #292524;
+}
+
+.md-body pre code {
+  background: transparent;
+  border: none;
+  padding: 0;
+  color: inherit;
+  font-size: inherit;
+}
+
+.md-body img {
+  border-radius: 12px;
+  max-width: 100%;
+  height: auto;
+}
+
+.md-body hr {
+  border: none;
+  border-top: 1px solid var(--line);
+  margin: 2.5em 0;
+}
+
+.md-body table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.95em;
+}
+
+.md-body th,
+.md-body td {
+  border: 1px solid var(--line);
+  padding: 0.6em 0.9em;
+  text-align: left;
+}
+
+.md-body th {
+  background: var(--paper-deep);
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.md-body > :first-child {
+  margin-top: 0;
+}
+
+/* 编辑器的等宽文本域 */
+.editor-textarea {
+  font-family: var(--font-mono);
+  font-size: 0.95rem;
+  line-height: 1.8;
+}
+
+/* 细节展开组件（用户菜单） */
+details.menu > summary {
+  list-style: none;
+}
+
+details.menu > summary::-webkit-details-marker {
+  display: none;
+}
+
+details.menu[open] > .menu-panel {
+  animation: menu-in 0.16s ease;
+}
+
+@keyframes menu-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
