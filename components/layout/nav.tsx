@@ -2,12 +2,14 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { List, X } from "@phosphor-icons/react";
+import { CaretDown, List, X } from "@phosphor-icons/react";
 import { useState } from "react";
+import { CATEGORIES } from "@/lib/categories";
 
 const links = [
   { href: "/posts", label: "文章" },
   { href: "/posts?sort=hot", label: "热门" },
+  { href: "/recommended", label: "推荐" },
 ];
 
 export function NavLinks() {
@@ -34,6 +36,40 @@ export function NavLinks() {
           </Link>
         );
       })}
+      <div className="relative group">
+        <button
+          type="button"
+          className={`flex items-center gap-1 text-sm transition ${
+            pathname.startsWith("/categories")
+              ? "font-semibold text-stone-900 dark:text-stone-100"
+              : "text-stone-500 hover:text-stone-900 dark:text-stone-400 dark:hover:text-stone-100"
+          }`}
+        >
+          分类
+          <CaretDown size={12} />
+        </button>
+        <div className="invisible absolute left-1/2 top-full z-50 w-56 -translate-x-1/2 pt-3 opacity-0 transition group-hover:visible group-hover:opacity-100">
+          <div className="rounded-2xl border border-stone-200 bg-white p-2 shadow-xl shadow-stone-900/10 dark:border-stone-800 dark:bg-stone-900">
+            <Link
+              href="/categories"
+              className="block rounded-xl px-4 py-2 text-sm text-stone-600 transition hover:bg-stone-100 hover:text-stone-900 dark:text-stone-300 dark:hover:bg-stone-800 dark:hover:text-stone-100"
+            >
+              全部分类
+            </Link>
+            <div className="my-1 h-px bg-stone-100 dark:bg-stone-800" />
+            {CATEGORIES.map((c) => (
+              <Link
+                key={c.key}
+                href={`/categories/${c.key}`}
+                className="flex items-center gap-2 rounded-xl px-4 py-2 text-sm text-stone-600 transition hover:bg-stone-100 hover:text-stone-900 dark:text-stone-300 dark:hover:bg-stone-800 dark:hover:text-stone-100"
+              >
+                <span>{c.emoji}</span>
+                {c.label}
+              </Link>
+            ))}
+          </div>
+        </div>
+      </div>
     </nav>
   );
 }
@@ -59,6 +95,12 @@ export function MobileNav() {
               { href: "/", label: "首页" },
               { href: "/posts", label: "文章" },
               { href: "/posts?sort=hot", label: "热门" },
+              { href: "/recommended", label: "推荐" },
+              { href: "/categories", label: "分类" },
+              ...CATEGORIES.map((c) => ({
+                href: `/categories/${c.key}`,
+                label: `${c.emoji} ${c.label}`,
+              })),
               { href: "/login", label: "登录" },
               { href: "/register", label: "注册" },
             ].map((link) => (

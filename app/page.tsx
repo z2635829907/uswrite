@@ -9,33 +9,39 @@ import {
 } from "@phosphor-icons/react/dist/ssr";
 import { Reveal } from "@/components/reveal";
 import { TagChip } from "@/components/tag-chip";
+import HeroBackground from "@/components/hero-background";
+import FeaturedCarousel from "@/components/featured-carousel";
+import InlineMusicPlayer from "@/components/inline-music-player";
 import {
   getPublicPosts,
   getStats,
   getTopTags,
 } from "@/lib/queries";
-import { formatDate, coverUrl } from "@/lib/utils";
 import { getSessionUser } from "@/lib/server-session";
+import { coverUrl, formatDate } from "@/lib/utils";
 
 export default async function HomePage() {
   const user = await getSessionUser();
-  const { posts } = getPublicPosts({ sort: "latest", pageSize: 3 });
+  const { posts } = getPublicPosts({ sort: "latest", pageSize: 4 });
   const tags = getTopTags(10);
   const stats = getStats();
-  const featured = posts.slice(0, 1)[0];
+  const featuredPosts = posts;
+  const featured = posts[0];
+  const recent = posts.slice(1, 4);
 
   return (
     <div>
       {/* Hero：左文右图的分栏布局 */}
-      <section className="mx-auto grid w-full max-w-6xl items-center gap-12 px-6 pb-16 pt-14 lg:grid-cols-[1.1fr_1fr] lg:pb-24 lg:pt-20">
-        <div>
-          <p className="mb-5 inline-flex items-center gap-2 rounded-full border border-stone-200 bg-white px-3.5 py-1.5 text-xs font-medium tracking-widest text-stone-500 dark:border-stone-800 dark:bg-stone-900 dark:text-stone-400">
+      <section className="relative mx-auto w-full max-w-6xl overflow-hidden px-6 pb-16 pt-14 lg:grid lg:grid-cols-[1.1fr_1fr] lg:items-center lg:gap-12 lg:pb-24 lg:pt-20">
+        <HeroBackground />
+        <div className="relative z-10">
+          <p className="mb-5 inline-flex items-center gap-2 rounded-full border border-white/30 bg-white/15 px-3.5 py-1.5 text-xs font-medium tracking-widest text-white backdrop-blur">
             拾光 · 文字社区
           </p>
-          <h1 className="max-w-xl text-[2.6rem] font-black leading-[1.12] tracking-tight text-stone-900 dark:text-stone-100 sm:text-5xl lg:text-6xl">
+          <h1 className="max-w-xl text-[2.6rem] font-black leading-[1.12] tracking-tight text-white drop-shadow-lg sm:text-5xl lg:text-6xl">
             把想说的话，写成一篇好文章
           </h1>
-          <p className="mt-6 max-w-md text-base leading-relaxed text-stone-500 dark:text-stone-400">
+          <p className="mt-6 max-w-md text-base leading-relaxed text-white/85 drop-shadow">
             发布你的文字，随时编辑，和读者认真讨论。每一篇投稿都经过人工审核，让这里保持安静、干净。
           </p>
           <div className="mt-8 flex flex-wrap items-center gap-3">
@@ -48,7 +54,7 @@ export default async function HomePage() {
             </Link>
             <Link
               href="/posts"
-              className="inline-flex items-center gap-2 rounded-full border border-stone-300 px-6 py-3 text-sm font-medium text-stone-700 transition hover:border-stone-400 hover:text-stone-900 active:translate-y-px dark:border-stone-700 dark:text-stone-200 dark:hover:text-white"
+              className="inline-flex items-center gap-2 rounded-full border border-white/50 bg-white/10 px-6 py-3 text-sm font-medium text-white backdrop-blur transition hover:border-white hover:bg-white/20 active:translate-y-px"
             >
               浏览文章
               <ArrowRight size={15} />
@@ -56,38 +62,12 @@ export default async function HomePage() {
           </div>
         </div>
 
-        {featured && (
-          <Reveal delay={0.1}>
-            <Link
-              href={`/posts/${featured.slug}`}
-              className="group block overflow-hidden rounded-3xl border border-stone-200 bg-white transition hover:border-stone-300 dark:border-stone-800 dark:bg-stone-900 dark:hover:border-stone-700"
-            >
-              <div className="relative aspect-[16/10] overflow-hidden bg-stone-100 dark:bg-stone-800">
-                <Image
-                  src={coverUrl(featured.cover_seed, 1000, 640)}
-                  alt={featured.title}
-                  fill
-                  sizes="(min-width: 1024px) 480px, 100vw"
-                  priority
-                  className="object-cover transition duration-500 group-hover:scale-[1.03]"
-                />
-                <span className="absolute left-4 top-4 rounded-full bg-stone-950/70 px-3 py-1 text-xs font-medium text-stone-100 backdrop-blur">
-                  最新
-                </span>
-              </div>
-              <div className="p-6">
-                <h2 className="text-xl font-bold tracking-tight text-stone-900 transition group-hover:text-green-800 dark:text-stone-100 dark:group-hover:text-green-400">
-                  {featured.title}
-                </h2>
-                <p className="mt-2 line-clamp-2 text-sm leading-relaxed text-stone-500 dark:text-stone-400">
-                  {featured.excerpt}
-                </p>
-                <p className="mt-4 text-xs text-stone-400">
-                  {featured.author.display_name} · {formatDate(featured.published_at)}
-                </p>
-              </div>
-            </Link>
-          </Reveal>
+        {featuredPosts.length > 0 && (
+          <div className="relative z-10">
+            <Reveal delay={0.1}>
+              <FeaturedCarousel posts={featuredPosts} />
+            </Reveal>
+          </div>
         )}
       </section>
 
@@ -125,31 +105,80 @@ export default async function HomePage() {
             </Link>
           </div>
         </Reveal>
-        <div className="border-t border-stone-200 dark:border-stone-800">
-          {posts.map((post, i) => (
-            <Reveal key={post.id} delay={i * 0.05}>
+        <div className="grid gap-5 lg:grid-cols-2">
+          {featured && (
+            <Reveal>
               <Link
-                href={`/posts/${post.slug}`}
-                className="group grid gap-4 border-b border-stone-200 py-6 transition sm:grid-cols-[3rem_1fr] dark:border-stone-800"
+                href={`/posts/${featured.slug}`}
+                className="group block h-full overflow-hidden rounded-3xl border border-stone-200 bg-white transition hover:border-stone-300 dark:border-stone-800 dark:bg-stone-900 dark:hover:border-stone-700"
               >
-                <span className="font-mono text-sm text-stone-300 dark:text-stone-600">
-                  {String(i + 1).padStart(2, "0")}
-                </span>
-                <div>
-                  <h3 className="text-lg font-bold tracking-tight text-stone-900 transition group-hover:text-green-800 dark:text-stone-100 dark:group-hover:text-green-400">
-                    {post.title}
+                <div className="relative aspect-[16/10] overflow-hidden bg-stone-100 dark:bg-stone-800">
+                  {featured.cover_seed && (
+                    <Image
+                      src={coverUrl(featured.cover_seed, 900, 560)}
+                      alt={featured.title}
+                      fill
+                      sizes="(min-width: 1024px) 560px, 100vw"
+                      priority
+                      className="object-cover transition duration-500 group-hover:scale-[1.03]"
+                    />
+                  )}
+                  <span className="absolute left-4 top-4 rounded-full bg-stone-950/70 px-3 py-1 text-xs font-medium text-stone-100 backdrop-blur">
+                    精选
+                  </span>
+                </div>
+                <div className="p-6">
+                  <h3 className="text-xl font-bold tracking-tight text-stone-900 transition group-hover:text-green-800 dark:text-stone-100 dark:group-hover:text-green-400">
+                    {featured.title}
                   </h3>
-                  <p className="mt-1.5 line-clamp-1 text-sm text-stone-500 dark:text-stone-400">
-                    {post.excerpt}
+                  <p className="mt-2 line-clamp-2 text-sm leading-relaxed text-stone-500 dark:text-stone-400">
+                    {featured.excerpt}
                   </p>
-                  <p className="mt-2.5 text-xs text-stone-400 dark:text-stone-500">
-                    {post.author.display_name} · {formatDate(post.published_at)} ·{" "}
-                    {post.like_count} 赞 · {post.comment_count} 评论
+                  <p className="mt-4 text-xs text-stone-400">
+                    {featured.author.display_name} · {formatDate(featured.published_at)} ·{" "}
+                    {featured.like_count} 赞 · {featured.comment_count} 评论
                   </p>
                 </div>
               </Link>
             </Reveal>
-          ))}
+          )}
+
+          <div className="grid content-start gap-4">
+            {recent.map((post, i) => (
+              <Reveal key={post.id} delay={0.05 + i * 0.05}>
+                <Link
+                  href={`/posts/${post.slug}`}
+                  className="group flex items-center gap-4 rounded-2xl border border-stone-200 bg-white p-3 transition hover:border-stone-300 dark:border-stone-800 dark:bg-stone-900 dark:hover:border-stone-700"
+                >
+                  <div className="relative h-16 w-24 shrink-0 overflow-hidden rounded-xl bg-stone-100 dark:bg-stone-800 sm:h-20 sm:w-32">
+                    {post.cover_seed && (
+                      <Image
+                        src={coverUrl(post.cover_seed, 240, 160)}
+                        alt={post.title}
+                        fill
+                        sizes="128px"
+                        className="object-cover transition duration-500 group-hover:scale-[1.06]"
+                      />
+                    )}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <h3 className="line-clamp-1 text-sm font-bold text-stone-900 transition group-hover:text-green-800 dark:text-stone-100 dark:group-hover:text-green-400">
+                      {post.title}
+                    </h3>
+                    <p className="mt-1 line-clamp-1 text-xs text-stone-500 dark:text-stone-400">
+                      {post.excerpt}
+                    </p>
+                    <p className="mt-2 text-[11px] text-stone-400">
+                      {post.author.display_name} · {formatDate(post.published_at)}
+                    </p>
+                  </div>
+                </Link>
+              </Reveal>
+            ))}
+            <Reveal delay={0.2}>
+              <InlineMusicPlayer />
+            </Reveal>
+          </div>
         </div>
       </section>
 

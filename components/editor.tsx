@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Eye, PencilSimple, WarningCircle } from "@phosphor-icons/react";
 import { MarkdownView } from "./markdown-view";
 import { coverUrl } from "@/lib/utils";
+import { CATEGORIES } from "@/lib/categories";
 import type { Post } from "@/lib/types";
 
 const STATUS_LABEL: Record<string, string> = {
@@ -20,6 +21,9 @@ export function Editor({ post }: { post?: Post }) {
   const [content, setContent] = useState(post?.content || "");
   const [excerpt, setExcerpt] = useState(post?.excerpt || "");
   const [tags, setTags] = useState(post?.tags || "");
+  const [category, setCategory] = useState(
+    post?.category || "uncategorized"
+  );
   const [coverSeed, setCoverSeed] = useState(post?.cover_seed || "");
   const [preview, setPreview] = useState(false);
   const [busy, setBusy] = useState<"draft" | "submit" | null>(null);
@@ -37,6 +41,7 @@ export function Editor({ post }: { post?: Post }) {
           content,
           excerpt,
           tags,
+          category,
           coverSeed,
           action,
         }),
@@ -142,6 +147,25 @@ export function Editor({ post }: { post?: Post }) {
             aria-label="标题"
             className="w-full rounded-2xl border border-stone-200 bg-white px-5 py-4 text-2xl font-bold tracking-tight text-stone-900 placeholder-stone-300 outline-none transition focus:border-green-800 dark:border-stone-800 dark:bg-stone-900 dark:text-stone-100 dark:placeholder-stone-600 dark:focus:border-green-400"
           />
+          <div className="space-y-2">
+            <label htmlFor="category" className="text-sm font-medium text-stone-600 dark:text-stone-300">
+              分类
+            </label>
+            <select
+              id="category"
+              value={category}
+              onChange={(e) => setCategory(e.target.value)}
+              aria-label="文章分类"
+              className="w-full rounded-xl border border-stone-200 bg-white px-4 py-2.5 text-sm text-stone-900 outline-none transition focus:border-green-800 dark:border-stone-800 dark:bg-stone-900 dark:text-stone-100 dark:focus:border-green-400"
+            >
+              <option value="uncategorized">未分类</option>
+              {CATEGORIES.map((c) => (
+                <option key={c.key} value={c.key}>
+                  {c.emoji} {c.label}
+                </option>
+              ))}
+            </select>
+          </div>
           <div className="grid gap-5 lg:grid-cols-2">
             <div className="space-y-2">
               <label htmlFor="tags" className="text-sm font-medium text-stone-600 dark:text-stone-300">

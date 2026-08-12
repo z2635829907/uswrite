@@ -240,3 +240,71 @@ details.menu[open] > .menu-panel {
     transform: translateY(0);
   }
 }
+
+/* 音乐播放器（自绘圆形唱片界面，APlayer 仅作为引擎） */
+.player-host .aplayer {
+  display: none;
+}
+
+.disc-spin {
+  transform: rotate(0deg);
+}
+
+.animate-disc-spin {
+  animation: disc-rotate 14s linear infinite;
+}
+
+@keyframes disc-rotate {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* 首页背景风景图淡入 */
+.hero-bg-fade {
+  animation: hero-bg-fade-in 1s ease forwards;
+}
+
+@keyframes hero-bg-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* 首页最新文章卡片轮播淡入 */
+.featured-fade {
+  animation: featured-fade-in 0.8s ease both;
+}
+
+@keyframes featured-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* 长条播放器歌词行切换 */
+.lyric-line {
+  animation: lyric-line-in 0.4s ease both;
+}
+
+@keyframes lyric-line-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

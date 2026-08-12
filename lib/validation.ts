@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { CATEGORIES } from "./categories";
 
 export const registerSchema = z.object({
   username: z
@@ -22,6 +23,10 @@ export const postSchema = z.object({
   excerpt: z.string().max(200, "摘要最多 200 个字符").optional().default(""),
   tags: z.string().max(80, "标签过长").optional().default(""),
   coverSeed: z.string().max(100, "封面种子过长").optional().default(""),
+  category: z
+    .enum([...CATEGORIES.map((c) => c.key), "uncategorized"] as const)
+    .optional()
+    .default("uncategorized"),
   action: z.enum(["draft", "submit"]),
 });
 

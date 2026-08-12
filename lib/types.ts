@@ -38,6 +38,7 @@ export interface Post {
   excerpt: string;
   cover_seed: string;
   tags: string;
+  category: string;
   status: PostStatus;
   rejection_reason: string;
   views: number;

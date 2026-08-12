@@ -46,6 +46,7 @@ function toPostWithMeta(row: PostRow, viewerId?: number): PostWithMeta {
     excerpt: row.excerpt,
     cover_seed: row.cover_seed,
     tags: row.tags,
+    category: row.category,
     status: row.status,
     rejection_reason: row.rejection_reason,
     views: row.views,
@@ -100,6 +101,7 @@ function withViewerFlags(sql: string, viewerId?: number) {
 
 export interface PostFilters {
   tag?: string;
+  category?: string;
   q?: string;
   sort?: "latest" | "hot";
   page?: number;
@@ -118,6 +120,10 @@ export function getPublicPosts(
   if (filters.tag) {
     where.push("(',' || p.tags || ',') LIKE ?");
     params.push(`%,${filters.tag},%`);
+  }
+  if (filters.category) {
+    where.push("p.category = ?");
+    params.push(filters.category);
   }
   if (filters.q) {
     where.push("(p.title LIKE ? OR p.excerpt LIKE ? OR p.content LIKE ?)");

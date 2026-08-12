@@ -15,6 +15,7 @@ export async function POST(req: NextRequest) {
     const excerpt = body.excerpt.trim();
     const tags = parseTags(body.tags).join(",");
     const coverSeed = body.coverSeed.trim() || title.slice(0, 20);
+    const category = body.category;
     const status = body.action === "submit" ? "pending" : "draft";
 
     if (status === "pending" && content.length < 50)
@@ -24,8 +25,8 @@ export async function POST(req: NextRequest) {
     const slug = randomSlug();
     const info = db
       .prepare(
-        `INSERT INTO posts (author_id, slug, title, content, excerpt, cover_seed, tags, status, views, created_at, updated_at, published_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?, NULL)`
+        `INSERT INTO posts (author_id, slug, title, content, excerpt, cover_seed, tags, category, status, views, created_at, updated_at, published_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?, NULL)`
       )
       .run(
         user.id,
@@ -35,6 +36,7 @@ export async function POST(req: NextRequest) {
         excerpt,
         coverSeed,
         tags,
+        category,
         status,
         now,
         now

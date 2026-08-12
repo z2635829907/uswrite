@@ -36,6 +36,7 @@ CREATE TABLE IF NOT EXISTS posts (
   excerpt TEXT NOT NULL DEFAULT '',
   cover_seed TEXT NOT NULL DEFAULT '',
   tags TEXT NOT NULL DEFAULT '',
+  category TEXT NOT NULL DEFAULT 'uncategorized',
   status TEXT NOT NULL DEFAULT 'draft' CHECK (status IN ('draft','pending','approved','rejected')),
   rejection_reason TEXT NOT NULL DEFAULT '',
   views INTEGER NOT NULL DEFAULT 0,
@@ -46,6 +47,7 @@ CREATE TABLE IF NOT EXISTS posts (
 
 CREATE INDEX IF NOT EXISTS idx_posts_status_published ON posts(status, published_at DESC);
 CREATE INDEX IF NOT EXISTS idx_posts_author ON posts(author_id);
+CREATE INDEX IF NOT EXISTS idx_posts_category ON posts(category, status);
 
 CREATE TABLE IF NOT EXISTS likes (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -91,6 +93,15 @@ CREATE TABLE IF NOT EXISTS notifications (
 
 CREATE INDEX IF NOT EXISTS idx_notifications_user ON notifications(user_id, read, created_at DESC);
 `);
+
+// 兼容已存在的旧数据库：补充 category 列
+try {
+  db.exec(
+    "ALTER TABLE posts ADD COLUMN category TEXT NOT NULL DEFAULT 'uncategorized'"
+  );
+} catch {
+  /* 列已存在时忽略 */
+}
 
 export function now() {
   return Date.now();

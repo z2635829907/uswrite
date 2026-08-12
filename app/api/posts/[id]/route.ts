@@ -28,6 +28,7 @@ export async function PATCH(
     const excerpt = body.excerpt.trim();
     const tags = parseTags(body.tags).join(",");
     const coverSeed = body.coverSeed.trim() || title.slice(0, 20);
+    const category = body.category;
 
     let status = post.status;
     if (body.action === "submit") {
@@ -38,7 +39,7 @@ export async function PATCH(
 
     db.prepare(
       `UPDATE posts
-       SET title = ?, content = ?, excerpt = ?, tags = ?, cover_seed = ?, status = ?, rejection_reason = '', updated_at = ?
+       SET title = ?, content = ?, excerpt = ?, tags = ?, cover_seed = ?, category = ?, status = ?, rejection_reason = '', updated_at = ?
        WHERE id = ?`
     ).run(
       title,
@@ -46,6 +47,7 @@ export async function PATCH(
       excerpt,
       tags,
       coverSeed,
+      category,
       status,
       Date.now(),
       postId

@@ -3,6 +3,7 @@ import { Outfit, Noto_Sans_SC } from "next/font/google";
 import "./globals.css";
 import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
+import MusicPlayer from "@/components/music-player";
 import { siteConfig } from "@/lib/site";
 import { getSessionUser, unreadNotificationCount } from "@/lib/server-session";
 
@@ -61,6 +62,7 @@ export default async function RootLayout({
         <Header user={user} unread={unread} />
         <main className="flex-1">{children}</main>
         <Footer />
+        <MusicPlayer />
       </body>
     </html>
   );
