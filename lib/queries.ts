@@ -154,6 +154,56 @@ export async function getFavorites(token?: string | null): Promise<PostWithMeta[
   return data.posts || [];
 }
 
+// ---------- AI 助手 ----------
+
+export interface RagEntry {
+  id: number;
+  title: string;
+  content: string;
+  updated_at: number;
+}
+
+export async function getAssistantHistory(
+  token?: string | null
+): Promise<Array<Record<string, unknown>>> {
+  const data = await springFetch<{ messages: Array<Record<string, unknown>> }>(
+    "/api/assistant/history",
+    { token }
+  );
+  return data.messages || [];
+}
+
+export async function clearAssistantHistory(token?: string | null): Promise<void> {
+  await springFetch("/api/assistant/history", { method: "DELETE", token });
+}
+
+export async function getAdminRagEntries(token?: string | null): Promise<RagEntry[]> {
+  const data = await springFetch<{ entries: RagEntry[] }>("/api/admin/rag", { token });
+  return data.entries || [];
+}
+
+export async function createRagEntry(
+  token: string | null | undefined,
+  data: { title: string; content: string }
+): Promise<void> {
+  await springFetch("/api/admin/rag", { method: "POST", body: data, token });
+}
+
+export async function updateRagEntry(
+  token: string | null | undefined,
+  id: number,
+  data: { title: string; content: string }
+): Promise<void> {
+  await springFetch(`/api/admin/rag/${id}`, { method: "PATCH", body: data, token });
+}
+
+export async function deleteRagEntry(
+  token: string | null | undefined,
+  id: number
+): Promise<void> {
+  await springFetch(`/api/admin/rag/${id}`, { method: "DELETE", token });
+}
+
 // ---------- 后台管理接口 ----------
 
 export async function getAdminOverview(token?: string | null): Promise<{

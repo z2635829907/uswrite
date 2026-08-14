@@ -2,6 +2,8 @@ package com.shiguang.blog.controller;
 
 import com.shiguang.blog.common.Api;
 import com.shiguang.blog.common.SecurityUtils;
+import com.shiguang.blog.ai.RAGService;
+import com.shiguang.blog.dto.RagEntryRequest;
 import com.shiguang.blog.dto.ReviewRequest;
 import com.shiguang.blog.dto.RoleRequest;
 import com.shiguang.blog.dto.StatusRequest;
@@ -23,9 +25,11 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/admin")
 public class AdminController {
   private final AdminService adminService;
+  private final RAGService ragService;
 
-  public AdminController(AdminService adminService) {
+  public AdminController(AdminService adminService, RAGService ragService) {
     this.adminService = adminService;
+    this.ragService = ragService;
   }
 
   @GetMapping("/overview")
@@ -92,6 +96,38 @@ public class AdminController {
   public Map<String, Object> hideComment(
       @PathVariable Long id, @Valid @RequestBody StatusRequest req) {
     adminService.hideComment(SecurityUtils.requireUserId(), id, req.status());
+    return Api.ok();
+  }
+
+  // ---------- AI 知识库管理 ----------
+
+  @GetMapping("/rag")
+  public Map<String, Object> ragEntries() {
+    Long adminId = SecurityUtils.requireUserId();
+    adminService.requireAdmin(adminId);
+    return Api.ok("entries", ragService.listEntries());
+  }
+
+  @PostMapping("/rag")
+  public Map<String, Object> createRagEntry(@Valid @RequestBody RagEntryRequest req) {
+    Long adminId = SecurityUtils.requireUserId();
+    adminService.requireAdmin(adminId);
+    return Api.ok("entry", ragService.createEntry(req.title(), req.content()));
+  }
+
+  @PatchMapping("/rag/{id}")
+  public Map<String, Object> updateRagEntry(
+      @PathVariable Long id, @Valid @RequestBody RagEntryRequest req) {
+    Long adminId = SecurityUtils.requireUserId();
+    adminService.requireAdmin(adminId);
+    return Api.ok("entry", ragService.updateEntry(id, req.title(), req.content()));
+  }
+
+  @DeleteMapping("/rag/{id}")
+  public Map<String, Object> deleteRagEntry(@PathVariable Long id) {
+    Long adminId = SecurityUtils.requireUserId();
+    adminService.requireAdmin(adminId);
+    ragService.deleteEntry(id);
     return Api.ok();
   }
 }

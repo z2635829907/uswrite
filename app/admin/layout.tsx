@@ -4,6 +4,7 @@ import {
   ArrowLeft,
   ChartBar,
   ChatCircle,
+  Database,
   NotePencil,
   UsersThree,
 } from "@phosphor-icons/react/dist/ssr";
@@ -14,6 +15,7 @@ const nav = [
   { href: "/admin/posts", label: "帖子审核", icon: <NotePencil size={17} /> },
   { href: "/admin/users", label: "用户管理", icon: <UsersThree size={17} /> },
   { href: "/admin/comments", label: "评论管理", icon: <ChatCircle size={17} /> },
+  { href: "/admin/rag", label: "AI 知识库", icon: <Database size={17} /> },
 ];
 
 export default async function AdminLayout({

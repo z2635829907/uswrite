@@ -70,6 +70,16 @@ export function NavLinks() {
           </div>
         </div>
       </div>
+      <Link
+        href="/assistant"
+        className={
+          pathname === "/assistant" || pathname.startsWith("/assistant")
+            ? "text-sm font-semibold text-stone-900 dark:text-stone-100"
+            : "text-sm text-stone-500 transition hover:text-stone-900 dark:text-stone-400 dark:hover:text-stone-100"
+        }
+      >
+        AI 助手
+      </Link>
     </nav>
   );
 }
@@ -97,6 +107,7 @@ export function MobileNav() {
               { href: "/posts?sort=hot", label: "热门" },
               { href: "/recommended", label: "推荐" },
               { href: "/categories", label: "分类" },
+              { href: "/assistant", label: "AI 助手" },
               ...CATEGORIES.map((c) => ({
                 href: `/categories/${c.key}`,
                 label: `${c.emoji} ${c.label}`,

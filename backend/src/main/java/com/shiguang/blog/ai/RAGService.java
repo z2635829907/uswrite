@@ -2,9 +2,11 @@ package com.shiguang.blog.ai;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.shiguang.blog.common.ApiException;
 import com.shiguang.blog.entity.Post;
 import com.shiguang.blog.mapper.PostMapper;
 import com.shiguang.blog.mapper.RagChunkMapper;
+import com.shiguang.blog.mapper.RagEntryMapper;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -12,13 +14,15 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 
 /**
- * RAG 问答服务:把站内已发布文章切成小块建立索引,收到问题后检索最相关的片段,
- * 再交给大模型生成回答;未配置大模型时自动降级为“检索结果摘要”。
+ * RAG 问答服务:检索范围 = 站内已发布文章 + 管理员维护的知识条目。
+ * 收到问题后检索最相关的片段,再交给大模型生成回答;未配置大模型时自动降级。
  */
 @Service
 public class RAGService {
@@ -29,21 +33,28 @@ public class RAGService {
 
   private final PostMapper postMapper;
   private final RagChunkMapper chunkMapper;
+  private final RagEntryMapper ragEntryMapper;
   private final LLMClient llmClient;
   private final ObjectMapper objectMapper;
 
   public RAGService(
       PostMapper postMapper,
       RagChunkMapper chunkMapper,
+      RagEntryMapper ragEntryMapper,
       LLMClient llmClient,
       ObjectMapper objectMapper) {
     this.postMapper = postMapper;
     this.chunkMapper = chunkMapper;
+    this.ragEntryMapper = ragEntryMapper;
     this.llmClient = llmClient;
     this.objectMapper = objectMapper;
   }
 
-  /** 建立/更新知识库索引:对比文章更新时间,只重建变化的部分。 */
+  /** 统一的检索单元:kind 为 post(站内文章)或 entry(知识条目)。 */
+  private record ChunkItem(
+      String kind, Long sourceId, String title, String content, String embedding) {}
+
+  /** 建立/更新知识库索引:重建变化的部分,并补全缺失的知识条目向量。 */
   public void ensureIndexed() {
     List<Post> posts =
         postMapper.selectList(
@@ -51,26 +62,37 @@ public class RAGService {
     List<Long> approvedIds = posts.stream().map(Post::getId).toList();
     if (approvedIds.isEmpty()) {
       chunkMapper.delete(new LambdaQueryWrapper<>());
-      return;
+    } else {
+      chunkMapper.delete(
+          new LambdaQueryWrapper<RagChunk>().notIn(RagChunk::getPost_id, approvedIds));
+      for (Post post : posts) {
+        Long lastIndexed =
+            chunkMapper
+                .selectList(
+                    new LambdaQueryWrapper<RagChunk>()
+                        .eq(RagChunk::getPost_id, post.getId())
+                        .orderByDesc(RagChunk::getCreated_at)
+                        .last("LIMIT 1"))
+                .stream()
+                .findFirst()
+                .map(RagChunk::getCreated_at)
+                .orElse(0L);
+        if (post.getUpdated_at() != null && lastIndexed >= post.getUpdated_at()) {
+          continue;
+        }
+        indexPost(post);
+      }
     }
-    chunkMapper.delete(
-        new LambdaQueryWrapper<RagChunk>().notIn(RagChunk::getPost_id, approvedIds));
-    for (Post post : posts) {
-      Long lastIndexed =
-          chunkMapper
-              .selectList(
-                  new LambdaQueryWrapper<RagChunk>()
-                      .eq(RagChunk::getPost_id, post.getId())
-                      .orderByDesc(RagChunk::getCreated_at)
-                      .last("LIMIT 1"))
-              .stream()
-              .findFirst()
-              .map(RagChunk::getCreated_at)
-              .orElse(0L);
-      if (post.getUpdated_at() != null && lastIndexed >= post.getUpdated_at()) {
+
+    List<RagEntry> entries =
+        ragEntryMapper.selectList(
+            new LambdaQueryWrapper<RagEntry>().orderByAsc(RagEntry::getId));
+    for (RagEntry entry : entries) {
+      Long embeddedAt = entry.getEmbedded_at() == null ? 0L : entry.getEmbedded_at();
+      if (entry.getEmbedding() != null && embeddedAt >= entry.getUpdated_at()) {
         continue;
       }
-      indexPost(post);
+      embedEntry(entry);
     }
   }
 
@@ -100,14 +122,38 @@ public class RAGService {
     }
   }
 
-  /** 处理用户问题:检索 + 生成回答 + 返回参考文章。 */
+  private void embedEntry(RagEntry entry) {
+    if (!llmClient.enabled()) {
+      return;
+    }
+    try {
+      entry.setEmbedding(
+          objectMapper.writeValueAsString(
+              llmClient.embed(entry.getTitle() + "\n" + entry.getContent())));
+      entry.setEmbedded_at(System.currentTimeMillis());
+      ragEntryMapper.updateById(entry);
+    } catch (Exception ignored) {
+      // 向量化失败,等待下次重试
+    }
+  }
+
+  /** 处理用户问题:检索 + 生成回答 + 返回参考来源。 */
   public Map<String, Object> ask(String question) {
     ensureIndexed();
-    List<RagChunk> chunks =
-        chunkMapper.selectList(new LambdaQueryWrapper<RagChunk>().orderByAsc(RagChunk::getId));
-    if (chunks.isEmpty()) {
+    List<ChunkItem> items = new ArrayList<>();
+    for (RagChunk c :
+        chunkMapper.selectList(
+            new LambdaQueryWrapper<RagChunk>().orderByAsc(RagChunk::getId))) {
+      items.add(new ChunkItem("post", c.getPost_id(), null, c.getContent(), c.getEmbedding()));
+    }
+    for (RagEntry e :
+        ragEntryMapper.selectList(
+            new LambdaQueryWrapper<RagEntry>().orderByAsc(RagEntry::getId))) {
+      items.add(new ChunkItem("entry", e.getId(), e.getTitle(), e.getContent(), e.getEmbedding()));
+    }
+    if (items.isEmpty()) {
       return Map.of(
-          "answer", "知识库还是空的,等有文章发布后再来问我吧。",
+          "answer", "知识库还是空的,等有文章发布或管理员添加知识后再来问我吧。",
           "sources", List.of(),
           "llm", false);
     }
@@ -121,50 +167,66 @@ public class RAGService {
       }
     }
 
-    List<Map.Entry<RagChunk, Double>> scored = new ArrayList<>();
-    for (RagChunk chunk : chunks) {
-      double keyword = keywordScore(question, chunk.getContent());
+    List<Map.Entry<ChunkItem, Double>> scored = new ArrayList<>();
+    for (ChunkItem item : items) {
+      double keyword = keywordScore(question, item.content());
       double total = keyword;
-      if (queryEmbedding != null && chunk.getEmbedding() != null) {
+      if (queryEmbedding != null && item.embedding() != null) {
         try {
-          float[] vec = objectMapper.readValue(chunk.getEmbedding(), float[].class);
+          float[] vec = objectMapper.readValue(item.embedding(), float[].class);
           total = 0.7 * cosine(queryEmbedding, vec) + 0.3 * keyword;
         } catch (Exception ignored) {
           // 向量解析失败时退化为关键词得分
         }
       }
-      scored.add(Map.entry(chunk, total));
+      scored.add(Map.entry(item, total));
     }
     scored.sort((a, b) -> Double.compare(b.getValue(), a.getValue()));
-    List<RagChunk> top =
+    List<ChunkItem> top =
         scored.stream().limit(TOP_K).map(Map.Entry::getKey).toList();
 
-    List<Long> postIds = top.stream().map(RagChunk::getPost_id).distinct().toList();
-    Map<Long, Post> posts = new HashMap<>();
-    for (Post p : postMapper.selectBatchIds(postIds)) {
-      posts.put(p.getId(), p);
-    }
+    List<Long> postIds =
+        top.stream()
+            .filter(i -> "post".equals(i.kind()))
+            .map(ChunkItem::sourceId)
+            .distinct()
+            .toList();
+    Map<Long, Post> posts =
+        postIds.isEmpty()
+            ? Map.of()
+            : postMapper.selectBatchIds(postIds).stream()
+                .collect(Collectors.toMap(Post::getId, Function.identity()));
 
-    // 参考文章(去重,最多 5 篇)
+    // 参考来源(去重,最多 5 条)
     List<Map<String, Object>> sources = new ArrayList<>();
-    Set<Long> seen = new LinkedHashSet<>();
-    for (RagChunk chunk : top) {
-      Post post = posts.get(chunk.getPost_id());
-      if (post == null || !seen.add(post.getId())) continue;
-      sources.add(
-          Map.of(
-              "post_id", post.getId(),
-              "title", post.getTitle(),
-              "slug", post.getSlug(),
-              "excerpt", post.getExcerpt() == null ? "" : post.getExcerpt()));
+    Set<Long> seenPosts = new LinkedHashSet<>();
+    Set<Long> seenEntries = new LinkedHashSet<>();
+    for (ChunkItem item : top) {
+      if ("post".equals(item.kind())) {
+        Post post = posts.get(item.sourceId());
+        if (post == null || !seenPosts.add(post.getId())) continue;
+        Map<String, Object> source = new LinkedHashMap<>();
+        source.put("post_id", post.getId());
+        source.put("title", post.getTitle());
+        source.put("slug", post.getSlug());
+        source.put("excerpt", post.getExcerpt() == null ? "" : post.getExcerpt());
+        sources.add(source);
+      } else {
+        if (!seenEntries.add(item.sourceId())) continue;
+        Map<String, Object> source = new LinkedHashMap<>();
+        source.put("post_id", null);
+        source.put("title", item.title());
+        source.put("slug", null);
+        source.put("excerpt", "");
+        sources.add(source);
+      }
       if (sources.size() >= 5) break;
     }
 
     StringBuilder context = new StringBuilder();
-    for (RagChunk chunk : top) {
-      Post post = posts.get(chunk.getPost_id());
-      String title = post == null ? "未知文章" : post.getTitle();
-      context.append("【文章:").append(title).append("】\n").append(chunk.getContent()).append("\n\n");
+    for (ChunkItem item : top) {
+      String title = "post".equals(item.kind()) ? posts.get(item.sourceId()).getTitle() : item.title();
+      context.append("【文章:").append(title).append("】\n").append(item.content()).append("\n\n");
     }
 
     if (llmClient.enabled()) {
@@ -191,10 +253,49 @@ public class RAGService {
 
     StringBuilder fallback = new StringBuilder("我根据站内文章找到了这些相关内容:\n\n");
     for (int i = 0; i < Math.min(3, top.size()); i++) {
-      fallback.append("• ").append(truncate(top.get(i).getContent(), 160)).append("\n\n");
+      fallback.append("• ").append(truncate(top.get(i).content(), 160)).append("\n\n");
     }
     fallback.append("配置大模型 API Key 后,我就能基于这些内容给出智能回答。");
     return Map.of("answer", fallback.toString(), "sources", sources, "llm", false);
+  }
+
+  // ---------- 管理员:知识条目增删改查 ----------
+
+  public List<RagEntry> listEntries() {
+    return ragEntryMapper.selectList(
+        new LambdaQueryWrapper<RagEntry>().orderByDesc(RagEntry::getUpdated_at));
+  }
+
+  public RagEntry createEntry(String title, String content) {
+    long now = System.currentTimeMillis();
+    RagEntry entry = new RagEntry();
+    entry.setTitle(title.trim());
+    entry.setContent(content.trim());
+    entry.setEmbedded_at(0L);
+    entry.setCreated_at(now);
+    entry.setUpdated_at(now);
+    ragEntryMapper.insert(entry);
+    embedEntry(entry);
+    return entry;
+  }
+
+  public RagEntry updateEntry(Long id, String title, String content) {
+    RagEntry entry = ragEntryMapper.selectById(id);
+    if (entry == null) {
+      throw new ApiException(404, "知识条目不存在");
+    }
+    entry.setTitle(title.trim());
+    entry.setContent(content.trim());
+    entry.setEmbedding(null);
+    entry.setEmbedded_at(0L);
+    entry.setUpdated_at(System.currentTimeMillis());
+    ragEntryMapper.updateById(entry);
+    embedEntry(entry);
+    return entry;
+  }
+
+  public void deleteEntry(Long id) {
+    ragEntryMapper.deleteById(id);
   }
 
   private static List<String> chunkText(String text) {
@@ -219,7 +320,6 @@ public class RAGService {
     return result;
   }
 
-  /** 关键词匹配得分:英文单词 + 中文二元组。 */
   private static double keywordScore(String query, String content) {
     String q = query.toLowerCase();
     String c = content.toLowerCase();
