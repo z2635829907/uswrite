@@ -23,3 +23,10 @@ app:
   jwt:
     secret: "shiguang-blog-jwt-secret-key-2026-change-me-in-production"
     expiration-ms: 604800000
+  llm:
+    base-url: ${SPRING_LLM_BASE_URL:https://api.deepseek.com}
+    api-key: ${SPRING_LLM_API_KEY:}
+    model: ${SPRING_LLM_MODEL:deepseek-chat}
+    embedding-model: ${SPRING_LLM_EMBEDDING_MODEL:text-embedding-3-small}
+    temperature: 0.4
+    max-tokens: 800

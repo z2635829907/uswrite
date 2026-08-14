@@ -90,3 +90,14 @@ CREATE TABLE IF NOT EXISTS notifications (
   CONSTRAINT fk_notifications_post FOREIGN KEY (post_id) REFERENCES posts(id) ON DELETE CASCADE,
   INDEX idx_notifications_user (user_id, `read`, created_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS rag_chunks (
+  id BIGINT PRIMARY KEY AUTO_INCREMENT,
+  post_id BIGINT NOT NULL,
+  chunk_index INT NOT NULL,
+  content TEXT NOT NULL,
+  embedding LONGTEXT,
+  created_at BIGINT NOT NULL,
+  CONSTRAINT fk_rag_chunks_post FOREIGN KEY (post_id) REFERENCES posts(id) ON DELETE CASCADE,
+  INDEX idx_rag_chunks_post (post_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
