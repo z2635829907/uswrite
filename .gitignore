@@ -43,6 +43,13 @@ yarn-error.log*
 /server.log
 /server.err.log
 
+# java backend
+/backend/target/
+/backend/server.log
+/backend/server-err.log
+/backend/.pid
+/backend/sql/migrate.sql
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts
