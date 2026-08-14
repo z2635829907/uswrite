@@ -49,6 +49,7 @@ yarn-error.log*
 /backend/server-err.log
 /backend/.pid
 /backend/sql/migrate.sql
+/backend/sql/cleanup.sql
 
 # typescript
 *.tsbuildinfo

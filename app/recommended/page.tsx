@@ -1,7 +1,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { ArrowRight, Fire, Sparkle } from "@phosphor-icons/react/dist/ssr";
-import { db } from "@/lib/db";
+import { getRecommended } from "@/lib/queries";
 import { categoryLabel } from "@/lib/categories";
 import { coverUrl, formatDate } from "@/lib/utils";
 
@@ -23,27 +23,22 @@ interface RecommendedRow {
 }
 
 export default async function RecommendedPage() {
-  const rows = db
-    .prepare(
-      `SELECT p.id, p.slug, p.title, p.excerpt, p.cover_seed, p.category, p.status,
-              p.views, p.created_at, p.published_at,
-              (SELECT COUNT(*) FROM likes l WHERE l.post_id = p.id) AS like_count,
-              (SELECT COUNT(*) FROM comments c WHERE c.post_id = p.id AND c.status = 'visible') AS comment_count,
-              u.display_name,
-              ROUND(
-                (SELECT COUNT(*) FROM likes l WHERE l.post_id = p.id) * 3.0
-                + (SELECT COUNT(*) FROM comments c WHERE c.post_id = p.id AND c.status = 'visible') * 4.0
-                + p.views * 0.2
-                + CASE WHEN p.published_at IS NOT NULL THEN 1.0 / ((p.published_at / 1000.0) / 86400.0 + 2) * 60 ELSE 0 END,
-                2
-              ) AS score
-       FROM posts p
-       JOIN users u ON u.id = p.author_id
-       WHERE p.status = 'approved'
-       ORDER BY score DESC
-       LIMIT 12`
-    )
-    .all() as unknown as RecommendedRow[];
+  const posts = await getRecommended(12);
+  const rows = posts.map((p) => ({
+    id: p.id,
+    slug: p.slug,
+    title: p.title,
+    excerpt: p.excerpt,
+    cover_seed: p.cover_seed,
+    category: p.category,
+    status: p.status,
+    views: p.views,
+    created_at: p.created_at,
+    published_at: p.published_at,
+    like_count: p.like_count,
+    comment_count: p.comment_count,
+    display_name: p.author?.display_name || "",
+  }));
 
   const featured = rows[0];
   const rest = rows.slice(1);

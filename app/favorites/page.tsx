@@ -2,24 +2,16 @@ import Link from "next/link";
 import Image from "next/image";
 import { redirect } from "next/navigation";
 import { EmptyState } from "@/components/empty-state";
-import { db } from "@/lib/db";
-import { getSessionUser } from "@/lib/server-session";
-import { getPostById } from "@/lib/queries";
+import { getSessionUser, getSpringToken } from "@/lib/server-session";
+import { getFavorites } from "@/lib/queries";
 import { coverUrl, formatDate } from "@/lib/utils";
 
 export default async function FavoritesPage() {
   const user = await getSessionUser();
   if (!user) redirect("/login?next=/favorites");
 
-  const rows = db
-    .prepare(
-      "SELECT post_id FROM bookmarks WHERE user_id = ? ORDER BY created_at DESC"
-    )
-    .all(user.id) as unknown as Array<{ post_id: number }>;
-
-  const posts = rows
-    .map((r) => getPostById(r.post_id, user.id))
-    .filter((p) => p && p.status === "approved");
+  const token = await getSpringToken();
+  const posts = await getFavorites(token);
 
   return (
     <div className="mx-auto w-full max-w-4xl px-6 py-12">

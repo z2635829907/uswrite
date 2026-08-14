@@ -87,4 +87,11 @@ public class AdminController {
     adminService.deleteComment(SecurityUtils.requireUserId(), id);
     return Api.ok();
   }
+
+  @PatchMapping("/comments/{id}")
+  public Map<String, Object> hideComment(
+      @PathVariable Long id, @Valid @RequestBody StatusRequest req) {
+    adminService.hideComment(SecurityUtils.requireUserId(), id, req.status());
+    return Api.ok();
+  }
 }

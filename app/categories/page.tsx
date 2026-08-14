@@ -1,17 +1,10 @@
 import Link from "next/link";
 import { CATEGORIES, DEFAULT_CATEGORY } from "@/lib/categories";
-import { db } from "@/lib/db";
+import { getCategoryCounts } from "@/lib/queries";
 
 export default async function CategoriesPage() {
-  const rows = db
-    .prepare(
-      `SELECT category, COUNT(*) AS n
-       FROM posts
-       WHERE status = 'approved'
-       GROUP BY category`
-    )
-    .all() as unknown as Array<{ category: string; n: number }>;
-  const counts = new Map(rows.map((r) => [r.category, Number(r.n)]));
+  const categories = await getCategoryCounts();
+  const counts = new Map(categories.map((c) => [c.key, Number(c.count)]));
 
   return (
     <div className="mx-auto w-full max-w-6xl px-6 py-12 lg:py-16">

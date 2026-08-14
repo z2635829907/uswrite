@@ -5,7 +5,7 @@ import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
 import MusicPlayer from "@/components/music-player";
 import { siteConfig } from "@/lib/site";
-import { getSessionUser, unreadNotificationCount } from "@/lib/server-session";
+import { getSessionUser, getSpringToken, unreadNotificationCount } from "@/lib/server-session";
 
 const outfit = Outfit({
   variable: "--font-outfit",
@@ -49,7 +49,8 @@ export default async function RootLayout({
   children: React.ReactNode;
 }>) {
   const user = await getSessionUser();
-  const unread = user ? unreadNotificationCount(user.id) : 0;
+  const token = await getSpringToken();
+  const unread = user ? await unreadNotificationCount(token) : 0;
 
   return (
     <html lang="zh-CN" suppressHydrationWarning>

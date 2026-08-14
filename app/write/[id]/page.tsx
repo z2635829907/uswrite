@@ -1,5 +1,6 @@
 import { notFound, redirect } from "next/navigation";
-import { getSessionUser } from "@/lib/server-session";
+import { getSessionUser, getSpringToken } from "@/lib/server-session";
+import type { PostWithMeta } from "@/lib/types";
 import { getPostById } from "@/lib/queries";
 import { Editor } from "@/components/editor";
 
@@ -11,7 +12,13 @@ export default async function EditPostPage({
   const { id } = await params;
   const user = await getSessionUser();
   if (!user) redirect("/login?next=/write/" + id);
-  const post = getPostById(Number(id));
+  const token = await getSpringToken();
+  let post: PostWithMeta | null = null;
+  try {
+    post = await getPostById(Number(id), token);
+  } catch {
+    post = null;
+  }
   if (!post || post.author_id !== user.id) notFound();
 
   return (

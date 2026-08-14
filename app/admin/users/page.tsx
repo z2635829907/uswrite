@@ -1,13 +1,12 @@
 import Link from "next/link";
-import { db } from "@/lib/db";
 import {
   UserRoleActions,
   UserStatusActions,
 } from "@/components/admin-actions";
 import { Avatar } from "@/components/avatar";
 import { formatDate } from "@/lib/utils";
-import { getSessionUser } from "@/lib/server-session";
-import type { User } from "@/lib/types";
+import { getSessionUser, getSpringToken } from "@/lib/server-session";
+import { getAdminUsers } from "@/lib/queries";
 
 export default async function AdminUsersPage({
   searchParams,
@@ -17,19 +16,17 @@ export default async function AdminUsersPage({
   const sp = await searchParams;
   const me = await getSessionUser();
   const q = sp.q?.trim() || "";
-  const rows = (
-    q
-      ? db
-          .prepare(
-            `SELECT * FROM users
-             WHERE username LIKE ? OR display_name LIKE ? OR email LIKE ?
-             ORDER BY created_at DESC LIMIT 100`
-          )
-          .all(`%${q}%`, `%${q}%`, `%${q}%`)
-      : db
-          .prepare("SELECT * FROM users ORDER BY created_at DESC LIMIT 100")
-          .all()
-  ) as unknown as User[];
+  const token = await getSpringToken();
+  const rows = (await getAdminUsers(q, token)) as unknown as Array<{
+    id: number;
+    username: string;
+    email: string;
+    display_name: string;
+    avatar_seed: string;
+    role: string;
+    status: string;
+    created_at: number;
+  }>;
 
   return (
     <div>

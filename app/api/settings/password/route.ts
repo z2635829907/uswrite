@@ -1,24 +1,19 @@
-import { NextRequest } from "next/server";
-import bcrypt from "bcryptjs";
-import { db } from "@/lib/db";
-import { requireUser } from "@/lib/auth";
-import { passwordSchema } from "@/lib/validation";
-import { ok, fail } from "@/lib/api";
-import { ResponseError } from "@/lib/auth";
+import { NextRequest, NextResponse } from "next/server";
+import { springFetch } from "@/lib/spring";
+import { getSpringToken, requireUser } from "@/lib/auth";
+import { fail } from "@/lib/api";
 
 export async function POST(req: NextRequest) {
   try {
-    const user = await requireUser();
-    const body = passwordSchema.parse(await req.json());
-    const match = await bcrypt.compare(body.currentPassword, user.password_hash);
-    if (!match) throw new ResponseError(400, "当前密码不正确");
-    const hash = await bcrypt.hash(body.newPassword, 10);
-    db.prepare("UPDATE users SET password_hash = ?, updated_at = ? WHERE id = ?").run(
-      hash,
-      Date.now(),
-      user.id
-    );
-    return ok();
+    await requireUser();
+    const token = await getSpringToken();
+    const body = await req.json();
+    const data = await springFetch("/api/auth/password", {
+      method: "PATCH",
+      body: { currentPassword: body.currentPassword, newPassword: body.newPassword },
+      token,
+    });
+    return NextResponse.json(data);
   } catch (e) {
     return fail(e);
   }

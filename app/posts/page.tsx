@@ -5,7 +5,6 @@ import { Pagination } from "@/components/pagination";
 import { EmptyState } from "@/components/empty-state";
 import { getPublicPosts } from "@/lib/queries";
 import { coverUrl, formatDate } from "@/lib/utils";
-import { getSessionUser } from "@/lib/server-session";
 
 interface Props {
   searchParams: Promise<{
@@ -20,11 +19,11 @@ export default async function PostsPage({ searchParams }: Props) {
   const q = sp.q?.trim() || "";
   const sort = sp.sort === "hot" ? "hot" : "latest";
   const page = Math.max(1, Number(sp.page) || 1);
-  const user = await getSessionUser();
-  const { posts, total, page: currentPage, pageSize } = getPublicPosts(
-    { q, sort, page },
-    user?.id
-  );
+  const { posts, total, page: currentPage, pageSize } = await getPublicPosts({
+    q,
+    sort,
+    page,
+  });
 
   return (
     <div className="mx-auto w-full max-w-6xl px-6 py-12 lg:py-16">

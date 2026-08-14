@@ -9,7 +9,6 @@ import {
 } from "@/lib/categories";
 import { getPublicPosts } from "@/lib/queries";
 import { coverUrl, formatDate } from "@/lib/utils";
-import { getSessionUser } from "@/lib/server-session";
 import { EmptyState } from "@/components/empty-state";
 
 export default async function CategoryPostsPage({
@@ -21,11 +20,11 @@ export default async function CategoryPostsPage({
   const key = decodeURIComponent(category);
   if (key !== DEFAULT_CATEGORY && !isCategoryKey(key)) notFound();
 
-  const user = await getSessionUser();
-  const { posts } = getPublicPosts(
-    { category: key, sort: "latest", pageSize: 24 },
-    user?.id
-  );
+  const { posts } = await getPublicPosts({
+    category: key,
+    sort: "latest",
+    pageSize: 24,
+  });
 
   return (
     <div className="mx-auto w-full max-w-6xl px-6 py-12 lg:py-16">

@@ -1,28 +1,33 @@
 import { NextRequest } from "next/server";
-import bcrypt from "bcryptjs";
-import { db } from "@/lib/db";
+import { springFetch } from "@/lib/spring";
 import { createSession } from "@/lib/auth";
 import { loginSchema } from "@/lib/validation";
 import { ok, fail } from "@/lib/api";
-import { ResponseError } from "@/lib/auth";
 import type { User } from "@/lib/types";
 
 export async function POST(req: NextRequest) {
   try {
     const body = loginSchema.parse(await req.json());
-    const account = body.account.trim();
-    const user = db
-      .prepare("SELECT * FROM users WHERE username = ? OR email = ?")
-      .get(account, account.toLowerCase()) as unknown as User | undefined;
-
-    if (!user) throw new ResponseError(401, "用户名或密码不正确");
-    if (user.status === "banned")
-      throw new ResponseError(403, "该账号已被禁用，如有疑问请联系管理员");
-
-    const match = await bcrypt.compare(body.password, user.password_hash);
-    if (!match) throw new ResponseError(401, "用户名或密码不正确");
-
-    await createSession(user);
+    const data = await springFetch<{ user: Record<string, unknown>; token: string }>(
+      "/api/auth/login",
+      { method: "POST", body: { account: body.account, password: body.password } }
+    );
+    const u = data.user;
+    const user: User = {
+      id: Number(u.id),
+      username: String(u.username || ""),
+      email: "",
+      password_hash: "",
+      display_name: String(u.display_name || ""),
+      bio: "",
+      website: "",
+      avatar_seed: "",
+      role: u.role === "admin" ? "admin" : "user",
+      status: u.status === "banned" ? "banned" : "active",
+      created_at: Date.now(),
+      updated_at: Date.now(),
+    };
+    await createSession(user, data.token);
     return ok({
       user: {
         id: user.id,

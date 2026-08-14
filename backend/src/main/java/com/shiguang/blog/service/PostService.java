@@ -35,6 +35,15 @@ import org.springframework.stereotype.Service;
 public class PostService {
   private static final Pattern TAG_SPLIT = Pattern.compile("[,，、\\s]+");
   private static final SecureRandom RANDOM = new SecureRandom();
+  private static final List<Map<String, String>> CATEGORIES =
+      List.of(
+          Map.of("key", "travel", "label", "旅行", "emoji", "✈️"),
+          Map.of("key", "life", "label", "生活", "emoji", "🌻"),
+          Map.of("key", "emotion", "label", "情感", "emoji", "💌"),
+          Map.of("key", "food", "label", "美食", "emoji", "🍜"),
+          Map.of("key", "sports", "label", "体育", "emoji", "⚽"),
+          Map.of("key", "entertainment", "label", "娱乐", "emoji", "🎬"),
+          Map.of("key", "game", "label", "游戏", "emoji", "🎮"));
 
   private final PostMapper postMapper;
   private final UserMapper userMapper;
@@ -84,6 +93,7 @@ public class PostService {
         user.getWebsite(),
         user.getAvatar_seed(),
         user.getRole(),
+        user.getStatus(),
         user.getCreated_at());
   }
 
@@ -212,15 +222,28 @@ public class PostService {
     if (post == null) {
       throw new ApiException(404, "文章不存在");
     }
-    boolean approved = "approved".equals(post.getStatus());
-    if (!approved) {
-      boolean owner = viewerId != null && viewerId.equals(post.getAuthor_id());
-      boolean admin = viewerId != null && isAdmin(viewerId);
-      if (!owner && !admin) {
-        throw new ApiException(404, "文章不存在");
-      }
-    }
+    requireViewable(post, viewerId);
     return toViews(List.of(post), viewerId).get(0);
+  }
+
+  public PostView getById(Long id, Long viewerId) {
+    Post post = postMapper.selectById(id);
+    if (post == null) {
+      throw new ApiException(404, "文章不存在");
+    }
+    requireViewable(post, viewerId);
+    return toViews(List.of(post), viewerId).get(0);
+  }
+
+  private void requireViewable(Post post, Long viewerId) {
+    if ("approved".equals(post.getStatus())) {
+      return;
+    }
+    boolean owner = viewerId != null && viewerId.equals(post.getAuthor_id());
+    boolean admin = viewerId != null && isAdmin(viewerId);
+    if (!owner && !admin) {
+      throw new ApiException(404, "文章不存在");
+    }
   }
 
   private boolean isAdmin(Long userId) {
@@ -333,8 +356,12 @@ public class PostService {
   }
 
   public Map<String, Object> toggleBookmark(Long userId, Long postId) {
-    Post post = postMapper.selectById(postId);
-    if (post == null || (!"approved".equals(post.getStatus()) && !post.getAuthor_id().equals(userId))) {
+    Post post =
+        postMapper.selectOne(
+            new LambdaQueryWrapper<Post>()
+                .eq(Post::getId, postId)
+                .eq(Post::getStatus, "approved"));
+    if (post == null) {
       throw new ApiException(404, "文章不存在");
     }
     Bookmark existing =
@@ -463,7 +490,81 @@ public class PostService {
       return List.of();
     }
     List<Long> ids = marks.stream().map(Bookmark::getPost_id).toList();
-    return toViews(postMapper.selectBatchIds(ids), userId);
+    List<Post> posts =
+        postMapper.selectBatchIds(ids).stream()
+            .filter(p -> "approved".equals(p.getStatus()))
+            .toList();
+    return toViews(posts, userId);
+  }
+
+  public List<PostView> related(Long postId, Long viewerId, int limit) {
+    Post post = postMapper.selectById(postId);
+    if (post == null) {
+      return List.of();
+    }
+    List<Post> candidates =
+        postMapper.selectList(
+            new LambdaQueryWrapper<Post>()
+                .eq(Post::getStatus, "approved")
+                .ne(Post::getId, postId));
+    List<String> tags = parseTags(post.getTags());
+    if (tags.isEmpty()) {
+      return List.of();
+    }
+    List<Post> related =
+        candidates.stream()
+            .filter(p -> parseTags(p.getTags()).stream().anyMatch(tags::contains))
+            .limit(limit)
+            .toList();
+    return toViews(related, viewerId);
+  }
+
+  public List<Map<String, Object>> categoryCounts() {
+    List<Post> posts =
+        postMapper.selectList(
+            new LambdaQueryWrapper<Post>()
+                .eq(Post::getStatus, "approved")
+                .select(Post::getCategory));
+    Map<String, Long> counts = new HashMap<>();
+    for (Post post : posts) {
+      String key =
+          post.getCategory() == null || post.getCategory().isBlank()
+              ? "uncategorized"
+              : post.getCategory();
+      counts.merge(key, 1L, Long::sum);
+    }
+    List<Map<String, Object>> result = new ArrayList<>();
+    for (Map<String, String> c : CATEGORIES) {
+      result.add(
+          Map.of(
+              "key", c.get("key"),
+              "label", c.get("label"),
+              "emoji", c.get("emoji"),
+              "count", counts.getOrDefault(c.get("key"), 0L)));
+    }
+    result.add(
+        Map.of(
+            "key", "uncategorized",
+            "label", "未分类",
+            "emoji", "📂",
+            "count", counts.getOrDefault("uncategorized", 0L)));
+    return result;
+  }
+
+  public void deleteComment(Long userId, Long commentId) {
+    Comment comment = commentMapper.selectById(commentId);
+    if (comment == null) {
+      throw new ApiException(404, "评论不存在");
+    }
+    Post post = postMapper.selectById(comment.getPost_id());
+    boolean canDelete =
+        comment.getUser_id().equals(userId)
+            || isAdmin(userId)
+            || (post != null && post.getAuthor_id().equals(userId));
+    if (!canDelete) {
+      throw new ApiException(403, "没有权限删除这条评论");
+    }
+    commentMapper.deleteById(commentId);
   }
 
   public List<PostView> recommended(Long viewerId, int limit) {

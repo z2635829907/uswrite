@@ -1,7 +1,7 @@
-import { NextRequest } from "next/server";
-import { db } from "@/lib/db";
-import { ok, fail } from "@/lib/api";
-import { ResponseError } from "@/lib/auth";
+import { NextRequest, NextResponse } from "next/server";
+import { springFetch } from "@/lib/spring";
+import { getSpringToken } from "@/lib/auth";
+import { fail } from "@/lib/api";
 
 export async function POST(
   _req: NextRequest,
@@ -9,12 +9,9 @@ export async function POST(
 ) {
   try {
     const { id } = await params;
-    const postId = Number(id);
-    const info = db
-      .prepare("UPDATE posts SET views = views + 1 WHERE id = ? AND status = 'approved'")
-      .run(postId);
-    if (info.changes === 0) throw new ResponseError(404, "文章不存在");
-    return ok();
+    const token = await getSpringToken();
+    const data = await springFetch(`/api/posts/${id}/view`, { method: "POST", token });
+    return NextResponse.json(data);
   } catch (e) {
     return fail(e);
   }

@@ -2,7 +2,6 @@ import { getPublicPosts, getTopTags } from "@/lib/queries";
 import { Pagination } from "@/components/pagination";
 import { EmptyState } from "@/components/empty-state";
 import { TagChip } from "@/components/tag-chip";
-import { getSessionUser } from "@/lib/server-session";
 import Link from "next/link";
 import { coverUrl, formatDate } from "@/lib/utils";
 import Image from "next/image";
@@ -17,12 +16,8 @@ export default async function TagPage({
   const { tag } = await params;
   const sp = await searchParams;
   const page = Math.max(1, Number(sp.page) || 1);
-  const user = await getSessionUser();
-  const { posts, total, pageSize } = getPublicPosts(
-    { tag, page },
-    user?.id
-  );
-  const otherTags = getTopTags(12).filter((t) => t.name !== tag);
+  const { posts, total, pageSize } = await getPublicPosts({ tag, page });
+  const otherTags = (await getTopTags(12)).filter((t) => t.name !== tag);
 
   return (
     <div className="mx-auto w-full max-w-6xl px-6 py-12 lg:py-16">

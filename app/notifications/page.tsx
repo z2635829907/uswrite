@@ -9,7 +9,7 @@ import {
 import { MarkAllRead } from "@/components/mark-all-read";
 import { EmptyState } from "@/components/empty-state";
 import { getNotifications, unreadNotificationCount } from "@/lib/queries";
-import { getSessionUser } from "@/lib/server-session";
+import { getSessionUser, getSpringToken } from "@/lib/server-session";
 import { timeAgo } from "@/lib/utils";
 
 const TYPE_ICON: Record<string, React.ReactNode> = {
@@ -22,8 +22,9 @@ const TYPE_ICON: Record<string, React.ReactNode> = {
 export default async function NotificationsPage() {
   const user = await getSessionUser();
   if (!user) redirect("/login?next=/notifications");
-  const items = getNotifications(user.id);
-  const unread = unreadNotificationCount(user.id);
+  const token = await getSpringToken();
+  const items = await getNotifications(30, token);
+  const unread = await unreadNotificationCount(token);
 
   return (
     <div className="mx-auto w-full max-w-2xl px-6 py-12">

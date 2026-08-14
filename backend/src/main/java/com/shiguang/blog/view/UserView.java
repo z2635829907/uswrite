@@ -14,5 +14,6 @@ public class UserView {
   private String website;
   private String avatar_seed;
   private String role;
+  private String status;
   private Long created_at;
 }

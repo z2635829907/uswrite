@@ -1,13 +1,7 @@
-import { NextRequest } from "next/server";
-import { db } from "@/lib/db";
-import { requireAdmin } from "@/lib/auth";
-import { ok, fail } from "@/lib/api";
-import { ResponseError } from "@/lib/auth";
-import { z } from "zod";
-
-const schema = z.object({
-  status: z.enum(["visible", "hidden"]),
-});
+import { NextRequest, NextResponse } from "next/server";
+import { springFetch } from "@/lib/spring";
+import { getSpringToken, requireAdmin } from "@/lib/auth";
+import { fail } from "@/lib/api";
 
 export async function PATCH(
   req: NextRequest,
@@ -15,14 +9,15 @@ export async function PATCH(
 ) {
   try {
     await requireAdmin();
+    const token = await getSpringToken();
     const { id } = await params;
-    const commentId = Number(id);
-    const body = schema.parse(await req.json());
-    const info = db
-      .prepare("UPDATE comments SET status = ? WHERE id = ?")
-      .run(body.status, commentId);
-    if (info.changes === 0) throw new ResponseError(404, "评论不存在");
-    return ok();
+    const body = await req.json();
+    const data = await springFetch(`/api/admin/comments/${id}`, {
+      method: "PATCH",
+      body,
+      token,
+    });
+    return NextResponse.json(data);
   } catch (e) {
     return fail(e);
   }

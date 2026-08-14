@@ -18,7 +18,8 @@ import { ViewTracker } from "@/components/view-tracker";
 import { DeletePostButton } from "@/components/delete-post-button";
 import { getPostBySlug, getRelatedPosts, getVisibleComments } from "@/lib/queries";
 import { coverUrl, formatDate } from "@/lib/utils";
-import { getSessionUser } from "@/lib/server-session";
+import { getSessionUser, getSpringToken } from "@/lib/server-session";
+import type { PostWithMeta } from "@/lib/types";
 
 export default async function PostPage({
   params,
@@ -27,7 +28,13 @@ export default async function PostPage({
 }) {
   const { slug } = await params;
   const user = await getSessionUser();
-  const post = getPostBySlug(slug, user?.id);
+  const token = await getSpringToken();
+  let post: PostWithMeta | null = null;
+  try {
+    post = await getPostBySlug(slug, token);
+  } catch {
+    post = null;
+  }
 
   const isOwner = post && user && post.author_id === user.id;
   const canView =
@@ -36,8 +43,8 @@ export default async function PostPage({
 
   if (!post || !canView) notFound();
 
-  const comments = getVisibleComments(post.id);
-  const related = getRelatedPosts(post);
+  const comments = await getVisibleComments(post.id);
+  const related = await getRelatedPosts(post, token);
   const readMinutes = Math.max(1, Math.round(post.content.length / 400));
 
   return (

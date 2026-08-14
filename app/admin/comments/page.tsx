@@ -1,27 +1,26 @@
 import Link from "next/link";
-import { db } from "@/lib/db";
 import { CommentModerationActions } from "@/components/admin-actions";
 import { timeAgo } from "@/lib/utils";
-import type { Comment } from "@/lib/types";
+import { getAdminComments } from "@/lib/queries";
+import { getSpringToken } from "@/lib/server-session";
 
 export default async function AdminCommentsPage() {
-  const rows = db
-    .prepare(
-      `SELECT c.*, u.display_name, u.username, p.title AS post_title, p.slug AS post_slug
-       FROM comments c
-       JOIN users u ON u.id = c.user_id
-       JOIN posts p ON p.id = c.post_id
-       ORDER BY c.created_at DESC
-       LIMIT 100`
-    )
-    .all() as unknown as Array<
-    Comment & {
-      display_name: string;
-      username: string;
-      post_title: string;
-      post_slug: string;
-    }
-  >;
+  const token = await getSpringToken();
+  const rows = (
+    (await getAdminComments(token)) as Array<Record<string, unknown>>
+  ).map((c) => ({
+    ...c,
+    display_name: (c.author as Record<string, unknown>)?.display_name || "",
+    username: (c.author as Record<string, unknown>)?.username || "",
+  })) as unknown as Array<{
+    id: number;
+    content: string;
+    status: string;
+    created_at: number;
+    post_title: string;
+    post_slug: string;
+    display_name: string;
+  }>;
 
   return (
     <div>

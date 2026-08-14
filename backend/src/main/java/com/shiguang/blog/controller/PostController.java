@@ -23,16 +23,6 @@ import org.springframework.web.bind.annotation.RestController;
 /** 文章、评论、点赞、收藏、统计、标签、推荐等接口。 */
 @RestController
 public class PostController {
-  private static final List<Map<String, String>> CATEGORIES =
-      List.of(
-          Map.of("key", "travel", "label", "旅行", "emoji", "✈️"),
-          Map.of("key", "life", "label", "生活", "emoji", "🌻"),
-          Map.of("key", "emotion", "label", "情感", "emoji", "💌"),
-          Map.of("key", "food", "label", "美食", "emoji", "🍜"),
-          Map.of("key", "sports", "label", "体育", "emoji", "⚽"),
-          Map.of("key", "entertainment", "label", "娱乐", "emoji", "🎬"),
-          Map.of("key", "game", "label", "游戏", "emoji", "🎮"));
-
   private final PostService postService;
 
   public PostController(PostService postService) {
@@ -56,6 +46,19 @@ public class PostController {
   public Map<String, Object> detail(@PathVariable String slug) {
     PostView post = postService.getBySlug(slug, SecurityUtils.currentUserId());
     return Api.ok("post", post);
+  }
+
+  @GetMapping("/api/posts/by-id/{id}")
+  public Map<String, Object> byId(@PathVariable Long id) {
+    PostView post = postService.getById(id, SecurityUtils.currentUserId());
+    return Api.ok("post", post);
+  }
+
+  @GetMapping("/api/posts/{id}/related")
+  public Map<String, Object> related(
+      @PathVariable Long id, @RequestParam(defaultValue = "3") int limit) {
+    return Api.ok(
+        "posts", postService.related(id, SecurityUtils.currentUserId(), Math.min(limit, 6)));
   }
 
   @PostMapping("/api/posts")
@@ -102,6 +105,12 @@ public class PostController {
     return Api.ok(postService.addComment(SecurityUtils.requireUserId(), id, req.content()));
   }
 
+  @DeleteMapping("/api/comments/{id}")
+  public Map<String, Object> deleteComment(@PathVariable Long id) {
+    postService.deleteComment(SecurityUtils.requireUserId(), id);
+    return Api.ok();
+  }
+
   @GetMapping("/api/users/{username}")
   public Map<String, Object> user(@PathVariable String username) {
     User user = postService.findByUsername(username);
@@ -143,7 +152,7 @@ public class PostController {
 
   @GetMapping("/api/categories")
   public Map<String, Object> categories() {
-    return Api.ok("categories", CATEGORIES);
+    return Api.ok("categories", postService.categoryCounts());
   }
 
   @GetMapping("/api/recommended")

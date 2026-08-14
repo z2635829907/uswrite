@@ -111,7 +111,7 @@ public class AdminService {
     notificationService.create(post.getAuthor_id(), adminId, "review", postId, content);
   }
 
-  public List<UserView> listUsers(String q) {
+  public List<Map<String, Object>> listUsers(String q) {
     LambdaQueryWrapper<User> wrapper = new LambdaQueryWrapper<>();
     if (q != null && !q.isBlank()) {
       wrapper.and(
@@ -123,7 +123,21 @@ public class AdminService {
                   .like(User::getEmail, q));
     }
     wrapper.orderByDesc(User::getCreated_at);
-    return userMapper.selectList(wrapper).stream().map(postService::toUserView).toList();
+    return userMapper.selectList(wrapper).stream()
+        .map(
+            u ->
+                Map.<String, Object>of(
+                    "id", u.getId(),
+                    "username", u.getUsername(),
+                    "email", u.getEmail(),
+                    "display_name", u.getDisplay_name(),
+                    "bio", u.getBio(),
+                    "website", u.getWebsite(),
+                    "avatar_seed", u.getAvatar_seed(),
+                    "role", u.getRole(),
+                    "status", u.getStatus(),
+                    "created_at", u.getCreated_at()))
+        .toList();
   }
 
   public void updateRole(Long adminId, Long userId, String role) {
@@ -131,9 +145,22 @@ public class AdminService {
     if (!List.of("user", "admin").contains(role)) {
       throw new ApiException(400, "角色只能是 user 或 admin");
     }
+    if (adminId.equals(userId)) {
+      throw new ApiException(400, "不能修改自己的权限");
+    }
     User user = userMapper.selectById(userId);
     if (user == null) {
       throw new ApiException(404, "用户不存在");
+    }
+    if ("user".equals(role) && "admin".equals(user.getRole())) {
+      long activeAdmins =
+          userMapper.selectCount(
+              new LambdaQueryWrapper<User>()
+                  .eq(User::getRole, "admin")
+                  .eq(User::getStatus, "active"));
+      if (activeAdmins <= 1) {
+        throw new ApiException(400, "至少保留一名管理员");
+      }
     }
     user.setRole(role);
     user.setUpdated_at(System.currentTimeMillis());
@@ -145,8 +172,8 @@ public class AdminService {
     if (!List.of("active", "banned").contains(status)) {
       throw new ApiException(400, "状态只能是 active 或 banned");
     }
-    if (adminId.equals(userId) && "banned".equals(status)) {
-      throw new ApiException(400, "不能禁用自己的账号");
+    if (adminId.equals(userId)) {
+      throw new ApiException(400, "不能操作自己的账号");
     }
     User user = userMapper.selectById(userId);
     if (user == null) {
@@ -196,5 +223,18 @@ public class AdminService {
   public void deleteComment(Long adminId, Long commentId) {
     requireAdmin(adminId);
     commentMapper.deleteById(commentId);
+  }
+
+  public void hideComment(Long adminId, Long commentId, String status) {
+    requireAdmin(adminId);
+    if (!List.of("visible", "hidden").contains(status)) {
+      throw new ApiException(400, "状态只能是 visible 或 hidden");
+    }
+    Comment comment = commentMapper.selectById(commentId);
+    if (comment == null) {
+      throw new ApiException(404, "评论不存在");
+    }
+    comment.setStatus(status);
+    commentMapper.updateById(comment);
   }
 }

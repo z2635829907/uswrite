@@ -84,7 +84,7 @@ public class NotificationService {
               if (actor != null) {
                 v.setActor(new UserView(actor.getId(), actor.getUsername(), actor.getDisplay_name(),
                     actor.getBio(), actor.getWebsite(), actor.getAvatar_seed(), actor.getRole(),
-                    actor.getCreated_at()));
+                    actor.getStatus(), actor.getCreated_at()));
               }
               Post post = posts.get(n.getPost_id());
               if (post != null) {

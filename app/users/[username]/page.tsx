@@ -4,7 +4,7 @@ import { CalendarBlank, Heart, LinkSimple, PencilSimple } from "@phosphor-icons/
 import { Avatar } from "@/components/avatar";
 import { getUserByUsername, getUserPosts } from "@/lib/queries";
 import { formatDate } from "@/lib/utils";
-import { getSessionUser } from "@/lib/server-session";
+import { getSessionUser, getSpringToken } from "@/lib/server-session";
 import Image from "next/image";
 import { coverUrl } from "@/lib/utils";
 
@@ -22,11 +22,12 @@ export default async function UserPage({
 }) {
   const { username } = await params;
   const user = await getSessionUser();
-  const profile = getUserByUsername(username);
+  const token = await getSpringToken();
+  const profile = await getUserByUsername(username);
   if (!profile) notFound();
 
   const isSelf = user?.id === profile.id;
-  const posts = getUserPosts(username, user?.id, isSelf);
+  const posts = await getUserPosts(username, token, isSelf);
   const likesReceived = posts.reduce((sum, p) => sum + p.like_count, 0);
 
   return (

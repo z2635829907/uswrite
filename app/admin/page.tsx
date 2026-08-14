@@ -1,32 +1,21 @@
 import Link from "next/link";
-import { db } from "@/lib/db";
 import { formatDate, timeAgo } from "@/lib/utils";
 import { ReviewActions } from "@/components/admin-actions";
-import type { Post, User } from "@/lib/types";
+import { getAdminOverview, getAdminPosts, getAdminUsers } from "@/lib/queries";
+import { getSpringToken } from "@/lib/server-session";
 
 export default async function AdminDashboard() {
-  const stats = {
-    users: (db.prepare("SELECT COUNT(*) AS n FROM users").get() as unknown as { n: number }).n,
-    posts: (db.prepare("SELECT COUNT(*) AS n FROM posts WHERE status = 'approved'").get() as unknown as { n: number }).n,
-    pending: (db.prepare("SELECT COUNT(*) AS n FROM posts WHERE status = 'pending'").get() as unknown as { n: number }).n,
-    comments: (db.prepare("SELECT COUNT(*) AS n FROM comments").get() as unknown as { n: number }).n,
-  };
-
-  const pendingPosts = db
-    .prepare(
-      `SELECT p.*, u.display_name, u.username
-       FROM posts p JOIN users u ON u.id = p.author_id
-       WHERE p.status = 'pending'
-       ORDER BY p.created_at ASC
-       LIMIT 10`
-    )
-    .all() as unknown as Array<Post & { display_name: string; username: string }>;
-
-  const recentUsers = db
-    .prepare(
-      "SELECT * FROM users ORDER BY created_at DESC LIMIT 6"
-    )
-    .all() as unknown as User[];
+  const token = await getSpringToken();
+  const stats = await getAdminOverview(token);
+  const pendingPosts = (await getAdminPosts({ status: "pending", pageSize: 10 }, token))
+    .posts.map((p) => ({ ...p, display_name: p.author?.display_name || "" }));
+  const recentUsers = (await getAdminUsers("", token)) as unknown as Array<{
+    id: number;
+    username: string;
+    display_name: string;
+    created_at: number;
+  }>;
+  const recentUsersList = recentUsers.slice(0, 6);
 
   const cards = [
     { label: "注册用户", value: stats.users, href: "/admin/users" },
@@ -111,7 +100,7 @@ export default async function AdminDashboard() {
           </h2>
         </div>
         <ul className="divide-y divide-stone-100 dark:divide-stone-800">
-          {recentUsers.map((u) => (
+          {recentUsersList.map((u) => (
             <li
               key={u.id}
               className="flex flex-wrap items-center justify-between gap-2 px-6 py-3.5 text-sm"

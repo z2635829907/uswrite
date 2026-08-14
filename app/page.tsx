@@ -15,12 +15,12 @@ import { getSessionUser } from "@/lib/server-session";
 
 export default async function HomePage() {
   const user = await getSessionUser();
-  const { posts: latestPosts } = getPublicPosts({
+  const { posts: latestPosts } = await getPublicPosts({
     sort: "latest",
     pageSize: 16,
   });
-  const tags = getTopTags(10);
-  const stats = getStats();
+  const tags = await getTopTags(10);
+  const stats = await getStats();
 
   return (
     <div>

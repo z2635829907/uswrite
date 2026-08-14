@@ -37,6 +37,7 @@ public class AuthService {
         user.getWebsite(),
         user.getAvatar_seed(),
         user.getRole(),
+        user.getStatus(),
         user.getCreated_at());
   }
 

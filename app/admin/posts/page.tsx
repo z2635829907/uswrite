@@ -1,9 +1,9 @@
 import Link from "next/link";
-import { db } from "@/lib/db";
 import { ReviewActions } from "@/components/admin-actions";
 import { timeAgo } from "@/lib/utils";
 import { CATEGORIES, categoryLabel } from "@/lib/categories";
-import type { Post } from "@/lib/types";
+import { getAdminPosts } from "@/lib/queries";
+import { getSpringToken } from "@/lib/server-session";
 
 const TABS = [
   { key: "all", label: "全部" },
@@ -38,23 +38,20 @@ export default async function AdminPostsPage({
     : "all";
   const category = sp.category && sp.category !== "all" ? sp.category : null;
 
-  let where = status === "all" ? "1=1" : "p.status = ?";
-  const params = status === "all" ? [] : [status];
-  if (category) {
-    where += " AND p.category = ?";
-    params.push(category);
-  }
-  const rows = db
-    .prepare(
-      `SELECT p.*, u.display_name, u.username
-       FROM posts p JOIN users u ON u.id = p.author_id
-       WHERE ${where}
-       ORDER BY p.updated_at DESC
-       LIMIT 100`
-    )
-    .all(...params) as unknown as Array<
-      Post & { display_name: string; username: string }
-    >;
+  const token = await getSpringToken();
+  const data = await getAdminPosts(
+    {
+      status: status === "all" ? undefined : status,
+      category: category || undefined,
+      pageSize: 100,
+    },
+    token
+  );
+  const rows = data.posts.map((p) => ({
+    ...p,
+    display_name: p.author?.display_name || "",
+    username: p.author?.username || "",
+  }));
 
   return (
     <div>
