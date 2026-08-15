@@ -1,8 +1,7 @@
 "use client";
 
 /**
- * 首页主视觉背景:书桌小熊高清图片。
- * 图片右边缘对齐页面右边缘,左侧留空给插件使用。
+ * 首页主视觉背景:书桌小熊高清图片,左对齐贴住页面左边缘。
  */
 export default function HeroImageBackground() {
   return (
@@ -11,7 +10,7 @@ export default function HeroImageBackground() {
         className="absolute inset-0 bg-cover bg-no-repeat"
         style={{
           backgroundImage: "url('/images/hero-desk-bear.jpg')",
-          backgroundPosition: "right center",
+          backgroundPosition: "left center",
         }}
       />
       <div className="absolute inset-0 bg-gradient-to-b from-stone-950/45 via-stone-950/20 to-stone-950/60" />
