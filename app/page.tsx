@@ -8,7 +8,7 @@ import {
 } from "@phosphor-icons/react/dist/ssr";
 import { Reveal } from "@/components/reveal";
 import { TagChip } from "@/components/tag-chip";
-import HeroBackground from "@/components/hero-background";
+import VideoHeroBackground from "@/components/video-hero-background";
 import LatestPosts from "@/components/latest-posts";
 import { getPublicPosts, getStats, getTopTags } from "@/lib/queries";
 import { getSessionUser } from "@/lib/server-session";
@@ -26,7 +26,7 @@ export default async function HomePage() {
     <div>
       {/* Hero */}
       <section className="relative mx-auto flex w-full max-w-6xl items-center justify-center overflow-hidden px-6 pb-16 pt-14 lg:min-h-[600px] lg:pb-24 lg:pt-20">
-        <HeroBackground />
+        <VideoHeroBackground />
         <div className="relative z-10 flex w-full max-w-3xl flex-col items-center text-center">
           <p className="mb-5 inline-flex items-center gap-2 rounded-full border border-white/30 bg-white/15 px-3.5 py-1.5 text-xs font-medium tracking-widest text-white backdrop-blur">
             拾光 · 文字社区
