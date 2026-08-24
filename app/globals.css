@@ -308,3 +308,61 @@ details.menu[open] > .menu-panel {
     transform: translateY(0);
   }
 }
+
+/* 首页首屏:艺术字逐字浮现 */
+@keyframes hero-letter-in {
+  from {
+    opacity: 0;
+    transform: translateY(28px);
+    filter: blur(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+    filter: blur(0);
+  }
+}
+
+.hero-letter {
+  animation: hero-letter-in 0.8s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes hero-fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.hero-fade-up {
+  animation: hero-fade-up 0.9s ease both;
+}
+
+/* 滚动提示:鼠标小图标上下浮动 */
+@keyframes scroll-hint {
+  0%,
+  100% {
+    transform: translateY(0);
+    opacity: 0.95;
+  }
+  50% {
+    transform: translateY(7px);
+    opacity: 0.5;
+  }
+}
+
+.scroll-hint {
+  animation: scroll-hint 1.7s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-letter,
+  .hero-fade-up,
+  .scroll-hint {
+    animation: none;
+  }
+}

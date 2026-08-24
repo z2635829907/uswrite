@@ -1,4 +1,8 @@
+"use client";
+
+import { useEffect, useState } from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import {
   Bell,
   BookmarkSimple,
@@ -21,20 +25,48 @@ export function Header({
   user: User | null;
   unread: number;
 }) {
+  const pathname = usePathname();
+  const [scrolled, setScrolled] = useState(false);
+
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 40);
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
+  const overlay = pathname === "/" && !scrolled;
+
   return (
-    <header className="sticky top-0 z-40 border-b border-stone-200 bg-stone-50/85 backdrop-blur dark:border-stone-800 dark:bg-stone-950/85">
+    <header
+      className={
+        overlay
+          ? "sticky top-0 z-40 border-b border-white/10 bg-transparent"
+          : "sticky top-0 z-40 border-b border-stone-200 bg-stone-50/85 backdrop-blur dark:border-stone-800 dark:bg-stone-950/85"
+      }
+    >
       <div className="mx-auto flex h-16 w-full max-w-6xl items-center justify-between gap-4 px-6">
         <div className="flex items-center gap-6">
           <Link
             href="/"
-            className="flex items-baseline gap-1.5 text-xl font-black tracking-tight"
+            className={`flex items-baseline gap-1.5 text-xl font-black tracking-tight ${
+              overlay
+                ? "text-white"
+                : "text-stone-900 dark:text-stone-100"
+            }`}
           >
             {siteConfig.name}
-            <span className="text-xs font-medium tracking-widest text-stone-400 dark:text-stone-500">
+            <span
+              className={`text-xs font-medium tracking-widest ${
+                overlay
+                  ? "text-stone-300/80"
+                  : "text-stone-400 dark:text-stone-500"
+              }`}
+            >
               {siteConfig.nameLatin}
             </span>
           </Link>
-          <NavLinks />
+          <NavLinks overlay={overlay} />
         </div>
 
         <div className="flex items-center gap-2">
@@ -44,7 +76,11 @@ export function Header({
               <Link
                 href="/notifications"
                 aria-label="通知"
-                className="relative inline-flex h-9 w-9 items-center justify-center rounded-full text-stone-500 transition hover:bg-stone-200/60 hover:text-stone-900 dark:text-stone-400 dark:hover:bg-stone-800 dark:hover:text-stone-100"
+                className={`relative inline-flex h-9 w-9 items-center justify-center rounded-full transition ${
+                  overlay
+                    ? "text-stone-100/90 hover:bg-white/10 hover:text-white"
+                    : "text-stone-500 hover:bg-stone-200/60 hover:text-stone-900 dark:text-stone-400 dark:hover:bg-stone-800 dark:hover:text-stone-100"
+                }`}
               >
                 <Bell size={19} />
                 {unread > 0 && (
@@ -116,19 +152,27 @@ export function Header({
             <div className="flex items-center gap-2">
               <Link
                 href="/login"
-                className="rounded-full px-4 py-2 text-sm font-medium text-stone-600 transition hover:text-stone-900 dark:text-stone-400 dark:hover:text-stone-100"
+                className={`rounded-full px-4 py-2 text-sm font-medium transition ${
+                  overlay
+                    ? "text-stone-100/90 hover:text-white"
+                    : "text-stone-600 hover:text-stone-900 dark:text-stone-400 dark:hover:text-stone-100"
+                }`}
               >
                 登录
               </Link>
               <Link
                 href="/register"
-                className="rounded-full bg-green-800 px-4 py-2 text-sm font-semibold text-white transition hover:bg-green-900 active:translate-y-px dark:bg-green-400 dark:text-stone-950 dark:hover:bg-green-300"
+                className={`rounded-full px-4 py-2 text-sm font-semibold transition ${
+                  overlay
+                    ? "bg-white/90 text-stone-900 hover:bg-white"
+                    : "bg-green-800 text-white hover:bg-green-900 dark:bg-green-400 dark:text-stone-950 dark:hover:bg-green-300"
+                }`}
               >
                 注册
               </Link>
             </div>
           )}
-          <MobileNav />
+          <MobileNav overlay={overlay} />
         </div>
       </div>
     </header>

@@ -2,51 +2,85 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { CaretDown, List, X } from "@phosphor-icons/react";
+import {
+  Article,
+  CaretDown,
+  Fire,
+  FolderOpen,
+  House,
+  List,
+  Robot,
+  Star,
+  X,
+} from "@phosphor-icons/react";
+import type { Icon } from "@phosphor-icons/react";
 import { useState } from "react";
 import { CATEGORIES } from "@/lib/categories";
 
-const links = [
-  { href: "/posts", label: "文章" },
-  { href: "/posts?sort=hot", label: "热门" },
-  { href: "/recommended", label: "推荐" },
+type NavIcon = Icon;
+
+type NavLink = {
+  href: string;
+  label: string;
+  icon: NavIcon;
+};
+
+const links: NavLink[] = [
+  { href: "/", label: "首页", icon: House },
+  { href: "/posts", label: "文章", icon: Article },
+  { href: "/posts?sort=hot", label: "热门", icon: Fire },
+  { href: "/recommended", label: "推荐", icon: Star },
 ];
 
-export function NavLinks() {
+function isActive(link: NavLink, pathname: string) {
+  if (link.href === "/") return pathname === "/";
+  if (link.href.includes("sort=hot"))
+    return pathname.startsWith("/posts") && pathname.includes("sort=hot");
+  if (link.href === "/posts")
+    return pathname === "/posts" || pathname.startsWith("/posts/");
+  return pathname === link.href || pathname.startsWith(link.href + "/");
+}
+
+export function NavLinks({ overlay = false }: { overlay?: boolean }) {
   const pathname = usePathname();
+  const base = overlay
+    ? "text-stone-100/85 hover:text-white"
+    : "text-stone-500 hover:text-stone-900 dark:text-stone-400 dark:hover:text-stone-100";
+  const activeCls = overlay
+    ? "text-white"
+    : "text-stone-900 dark:text-stone-100";
+
   return (
     <nav className="hidden items-center gap-6 md:flex">
       {links.map((link) => {
-        const active =
-          link.href === "/posts"
-            ? pathname === "/posts" || pathname.startsWith("/posts/")
-            : pathname.startsWith("/posts") &&
-              (pathname.includes("sort=hot") || false);
+        const active = isActive(link, pathname);
+        const Icon = link.icon;
         return (
           <Link
             key={link.href}
             href={link.href}
-            className={
-              active
-                ? "text-sm font-semibold text-stone-900 dark:text-stone-100"
-                : "text-sm text-stone-500 transition hover:text-stone-900 dark:text-stone-400 dark:hover:text-stone-100"
-            }
+            className={`flex items-center gap-1.5 text-sm transition ${
+              active ? `font-semibold ${activeCls}` : base
+            }`}
           >
+            <Icon size={15} weight={active ? "bold" : "regular"} />
             {link.label}
           </Link>
         );
       })}
+
       <div className="relative group">
         <button
           type="button"
-          className={`flex items-center gap-1 text-sm transition ${
+          className={`flex items-center gap-1.5 text-sm transition ${
             pathname.startsWith("/categories")
-              ? "font-semibold text-stone-900 dark:text-stone-100"
-              : "text-stone-500 hover:text-stone-900 dark:text-stone-400 dark:hover:text-stone-100"
+              ? `font-semibold ${activeCls}`
+              : base
           }`}
         >
+          <FolderOpen size={15} />
           分类
-          <CaretDown size={12} />
+          <CaretDown size={11} />
         </button>
         <div className="invisible absolute left-1/2 top-full z-50 w-56 -translate-x-1/2 pt-3 opacity-0 transition group-hover:visible group-hover:opacity-100">
           <div className="rounded-2xl border border-stone-200 bg-white p-2 shadow-xl shadow-stone-900/10 dark:border-stone-800 dark:bg-stone-900">
@@ -70,21 +104,23 @@ export function NavLinks() {
           </div>
         </div>
       </div>
+
       <Link
         href="/assistant"
-        className={
+        className={`flex items-center gap-1.5 text-sm transition ${
           pathname === "/assistant" || pathname.startsWith("/assistant")
-            ? "text-sm font-semibold text-stone-900 dark:text-stone-100"
-            : "text-sm text-stone-500 transition hover:text-stone-900 dark:text-stone-400 dark:hover:text-stone-100"
-        }
+            ? `font-semibold ${activeCls}`
+            : base
+        }`}
       >
+        <Robot size={15} />
         AI 助手
       </Link>
     </nav>
   );
 }
 
-export function MobileNav() {
+export function MobileNav({ overlay = false }: { overlay?: boolean }) {
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
 
@@ -94,7 +130,11 @@ export function MobileNav() {
         type="button"
         onClick={() => setOpen(!open)}
         aria-label="菜单"
-        className="inline-flex h-9 w-9 items-center justify-center rounded-full text-stone-600 dark:text-stone-300"
+        className={`inline-flex h-9 w-9 items-center justify-center rounded-full transition ${
+          overlay
+            ? "text-stone-100/90 hover:text-white"
+            : "text-stone-600 dark:text-stone-300"
+        }`}
       >
         {open ? <X size={20} /> : <List size={20} />}
       </button>
