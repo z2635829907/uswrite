@@ -107,7 +107,7 @@ export default function AssistantPage() {
               </span>
               <div>
                 <h1 className="bg-gradient-to-r from-green-800 to-teal-600 bg-clip-text text-xl font-black tracking-tight text-transparent dark:from-green-400 dark:to-teal-300">
-                  拾光 AI 助手
+                  uswrite AI 助手
                 </h1>
                 <p className="mt-0.5 text-xs text-stone-500 dark:text-stone-400">
                   基于站内文章与知识库回答，点击参考文章可查看原文
@@ -139,7 +139,7 @@ export default function AssistantPage() {
                   <Sparkle size={26} weight="fill" />
                 </span>
                 <p className="max-w-sm text-sm leading-relaxed text-stone-500 dark:text-stone-400">
-                  你好，我是拾光 AI 助手。
+                  你好，我是uswrite AI 助手。
                   <br />
                   可以问我“有哪些关于旅行的文章？”
                   <br />

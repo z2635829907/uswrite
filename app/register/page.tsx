@@ -15,7 +15,7 @@ export default async function RegisterPage() {
             <Feather size={22} weight="bold" />
           </span>
           <h1 className="mt-4 text-2xl font-black tracking-tight text-stone-900 dark:text-stone-100">
-            加入拾光
+            加入uswrite
           </h1>
           <p className="mt-1.5 text-sm text-stone-500 dark:text-stone-400">
             写下你的第一篇文字

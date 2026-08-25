@@ -81,7 +81,7 @@ export function RagEntryManager({ initialEntries }: { initialEntries: RagEntry[]
           type="text"
           value={title}
           onChange={(e) => setTitle(e.target.value)}
-          placeholder="标题，例如：拾光社区介绍"
+          placeholder="标题，例如：uswrite社区介绍"
           aria-label="知识条目标题"
           className="mt-4 w-full rounded-xl border border-stone-200 bg-white px-4 py-2.5 text-sm outline-none transition focus:border-green-800 dark:border-stone-700 dark:bg-stone-900 dark:text-stone-100 dark:focus:border-green-400"
         />

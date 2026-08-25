@@ -24,7 +24,7 @@ export function Footer() {
         </nav>
       </div>
       <div className="border-t border-stone-200 py-5 text-center text-xs text-stone-400 dark:border-stone-800 dark:text-stone-500">
-        拾光 · 记录与分享，让每个想法都有回响
+        uswrite · 记录与分享，让每个想法都有回响
       </div>
     </footer>
   );

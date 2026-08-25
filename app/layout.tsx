@@ -23,8 +23,8 @@ const notoSans = Noto_Sans_SC({
 
 export const metadata: Metadata = {
   title: {
-    default: "拾光 · 一个安静的文字社区",
-    template: "%s · 拾光",
+    default: "uswrite · 一个安静的文字社区",
+    template: "%s · uswrite",
   },
   description: siteConfig.description,
 };

@@ -15,7 +15,7 @@
   <artifactId>shiguang-blog</artifactId>
   <version>1.0.0</version>
   <name>shiguang-blog</name>
-  <description>拾光博客社区后端(Spring Boot + MySQL)</description>
+  <description>uswrite博客社区后端(Spring Boot + MySQL)</description>
 
   <properties>
     <java.version>17</java.version>

@@ -65,5 +65,5 @@ export function initials(name: string) {
 }
 
 export function siteTitle(title?: string) {
-  return title ? `${title} · 拾光` : "拾光 · 一个安静的文字社区";
+  return title ? `${title} · uswrite` : "uswrite · 一个安静的文字社区";
 }

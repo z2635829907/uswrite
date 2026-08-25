@@ -47,7 +47,7 @@ export default async function RecommendedPage() {
     <div className="mx-auto w-full max-w-6xl px-6 py-12 lg:py-16">
       <p className="inline-flex items-center gap-2 rounded-full border border-orange-200 bg-orange-50 px-3.5 py-1.5 text-xs font-medium tracking-widest text-orange-700 dark:border-orange-900 dark:bg-orange-950 dark:text-orange-300">
         <Sparkle size={13} weight="fill" />
-        拾光推荐
+        uswrite推荐
       </p>
       <h1 className="mt-4 text-3xl font-black tracking-tight text-stone-900 dark:text-stone-100">
         推荐阅读

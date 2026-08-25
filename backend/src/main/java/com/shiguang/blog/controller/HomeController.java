@@ -11,7 +11,7 @@ public class HomeController {
   public Map<String, Object> home() {
     return Map.of(
         "ok", true,
-        "service", "拾光博客社区后端 (Spring Boot + MySQL)",
+        "service", "uswrite博客社区后端 (Spring Boot + MySQL)",
         "frontend", "http://localhost:3000",
         "api", "/api/...");
   }

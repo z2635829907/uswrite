@@ -19,7 +19,7 @@ const BUBBLES = [
   "写不下去的时候,就来找我玩吧！",
   "嘘,我在等下一篇文章上线呢。",
   "喵呜～要不要听首歌放松一下？",
-  "我是拾光的小守护喵!",
+  "我是 uswrite 的小守护喵!",
   "别戳啦,再戳我要跳起来啦！",
   "灵感来了记得告诉我哦！",
   "和你一起看文章真好~",
@@ -381,7 +381,7 @@ export default function CatPet() {
               <div className={`h-full w-full ${anim ? `pet-anim-${anim}` : ""}`}>
                 <Image
                   src={blinking ? "/images/cat-pet-blink.png" : "/images/cat-pet.png"}
-                  alt="拾光小猫"
+                  alt="uswrite小猫"
                   width={PET_SIZE}
                   height={PET_SIZE}
                   priority

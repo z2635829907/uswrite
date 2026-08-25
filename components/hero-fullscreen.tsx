@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from "react";
 
-const TITLE = "拾光";
-const TAGLINE = "把日子写成诗,拾起每一寸微光";
+const TITLE = "uswrite";
+const TAGLINE = "把日子写成诗,记录每一寸微光";
 const SUB = "一个安静的文字社区";
 
 export default function HeroFullscreen() {
@@ -57,14 +57,22 @@ export default function HeroFullscreen() {
       className="fixed inset-0 z-0 overflow-hidden"
       aria-label="开场"
     >
-      {/* 全屏背景图 */}
+      {/* 全屏背景图:白天/夜间双图层,切换主题时平滑交叉淡入淡出 */}
       <div
-        className="absolute inset-0 bg-cover bg-center"
-        style={{
-          backgroundImage: "url('/images/hero-desk-bear.jpg')",
-          transform: `scale(${1 + progress * 0.12})`,
-        }}
-      />
+        className="absolute inset-0"
+        style={{ transform: `scale(${1 + progress * 0.12})` }}
+      >
+        {/* 白天背景 */}
+        <div
+          className="absolute inset-0 bg-cover bg-center transition-opacity duration-700 ease-in-out dark:opacity-0"
+          style={{ backgroundImage: "url('/images/hero-desk-bear.jpg')" }}
+        />
+        {/* 夜间背景 */}
+        <div
+          className="absolute inset-0 bg-cover bg-center transition-opacity duration-700 ease-in-out opacity-0 dark:opacity-100"
+          style={{ backgroundImage: "url('/images/hero-night.jpg')" }}
+        />
+      </div>
 
       {/* 上下渐变压暗,保证文字可读,并平滑过渡到下方内容 */}
       <div className="absolute inset-0 bg-gradient-to-b from-stone-950/60 via-stone-950/10 to-stone-950/75" />

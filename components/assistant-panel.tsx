@@ -98,7 +98,7 @@ export function AssistantPanel({
           </span>
           <div>
             <p className="text-sm font-bold text-stone-900 dark:text-stone-100">
-              拾光 AI 助手
+              uswrite AI 助手
             </p>
             <p className="text-[11px] text-stone-400">基于站内文章回答</p>
           </div>
@@ -125,7 +125,7 @@ export function AssistantPanel({
       <div className="flex-1 space-y-3 overflow-y-auto px-3.5 py-3.5">
         {messages.length === 0 && (
           <p className="mt-6 text-center text-xs leading-relaxed text-stone-400">
-            你好,我是拾光 AI 助手。
+            你好,我是uswrite AI 助手。
             <br />
             可以问我“有哪些关于旅行的文章？”
           </p>
