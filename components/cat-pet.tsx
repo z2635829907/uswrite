@@ -8,7 +8,12 @@ import { useMusicEngine } from "@/lib/use-music-engine";
 import { AssistantPanel } from "./assistant-panel";
 
 const PET_STORAGE_KEY = "shiguang-cat-pet-pos";
+const PET_MOVED_KEY = "shiguang-cat-pet-moved";
+const GREETED_KEY = "shiguang-cat-pet-greeted";
+const USED_KEY = "shiguang-cat-pet-used";
 const PET_SIZE = 120; // 猫咪显示宽度(px)
+const PEEK_RIGHT_EXTRA = 31.5; // 探头状态额外往右贴的像素,让竖墙贴近屏幕右缘
+const PEEK_TOP_EXTRA = 16; // 探头状态额外往上抬的像素,让探头猫更靠上
 const LONG_PRESS_MS = 260; // 长按判定
 const MOVE_THRESHOLD = 7; // 开始拖动的位移阈值(px)
 
@@ -25,12 +30,35 @@ const BUBBLES = [
   "和你一起看文章真好~",
 ];
 
+// 主动聊天语句:每隔一段时间主动找用户说话
+const PROACTIVE = [
+  "今天过得怎么样呀？",
+  "有什么有趣的事,快说给我听听？",
+  "你最近在读什么书呀？",
+  "写文章累了吗？歇一会儿吧～",
+  "要不要听首音乐放空一下？",
+  "我刚刚偷偷看了你的主页,真好看喵！",
+  "有什么开心的事想跟我分享吗？",
+  "天气这么好,适合写点什么～",
+  "灵感来了要赶紧记下来,别让它跑掉啦！",
+  "喝水了吗？记得让眼睛休息一下哦！",
+  "遇到烦心事了？跟我说说,我听着呢～",
+  "要不要一起去看看大家的文章？",
+  "我今天又长大了一点点,你发现了吗？",
+  "你最喜欢这个网站的哪个角落呀？",
+  "陪我看会儿星星吧,喵～",
+  "有没有想去的地方？写下来告诉我～",
+];
+
 type PetAnim = "jump" | "squash" | "shake";
 const ANIM_SEQ: PetAnim[] = ["jump", "squash", "shake"];
 
 function loadInitialPos(): { x: number; y: number } | null {
   if (typeof window === "undefined") return null;
   try {
+    // 只有用户主动拖动过后才恢复记忆位置;否则刷新一律回到右下角
+    const moved = localStorage.getItem(PET_MOVED_KEY) === "1";
+    if (!moved) return null;
     const saved = localStorage.getItem(PET_STORAGE_KEY);
     if (saved) {
       const p = JSON.parse(saved) as { x?: number; y?: number };
@@ -59,6 +87,8 @@ export default function CatPet() {
   const [interacting, setInteracting] = useState(false);
   const [anim, setAnim] = useState<PetAnim | null>(null);
   const [bubble, setBubble] = useState<string | null>(null);
+  const [bubbleOpen, setBubbleOpen] = useState(false);
+  const [pose, setPose] = useState<"peek" | "sit">("peek");
   const [menuOpen, setMenuOpen] = useState(false);
   const [assistantOpen, setAssistantOpen] = useState(false);
   const [blinking, setBlinking] = useState(false);
@@ -78,9 +108,56 @@ export default function CatPet() {
   const longPressTimer = useRef<number | null>(null);
   const animTimer = useRef<number | null>(null);
   const bubbleTimer = useRef<number | null>(null);
+  const bubbleHideTimer = useRef<number | null>(null);
   const lookFrame = useRef<number | null>(null);
   const lookTarget = useRef({ x: 0, y: 0 });
   const draggingRef = useRef(false);
+  const greetTimers = useRef<number[]>([]);
+  const bubbleRef = useRef<string | null>(null);
+  const lastProactive = useRef<string | null>(null);
+
+  const clearGreet = useCallback(() => {
+    greetTimers.current.forEach((t) => window.clearTimeout(t));
+    greetTimers.current = [];
+  }, []);
+
+  // 用户一旦主动交互(点击/右键/使用菜单),就停止主动引导并视为已使用过
+  const markInteracted = useCallback(() => {
+    clearGreet();
+    setPose("sit"); // 交互后从"探头"唤醒为"端坐"
+    try {
+      localStorage.setItem(USED_KEY, "1");
+    } catch {
+      /* 存储失败时忽略 */
+    }
+  }, [clearGreet]);
+
+  // 隐藏气泡:先淡出(约0.3秒),再彻底移除文案
+  const hideBubble = useCallback(() => {
+    if (bubbleTimer.current) window.clearTimeout(bubbleTimer.current);
+    setBubbleOpen(false);
+    if (bubbleHideTimer.current) window.clearTimeout(bubbleHideTimer.current);
+    bubbleHideTimer.current = window.setTimeout(() => setBubble(null), 320);
+  }, []);
+
+  // 显示气泡:立即淡入,并按给定时长后自动淡出(0 表示不自动消失)
+  const showBubble = useCallback(
+    (text: string, hideAfterMs: number) => {
+      if (bubbleTimer.current) window.clearTimeout(bubbleTimer.current);
+      if (bubbleHideTimer.current) window.clearTimeout(bubbleHideTimer.current);
+      setBubble(text);
+      setBubbleOpen(true);
+      if (hideAfterMs > 0) {
+        bubbleTimer.current = window.setTimeout(() => hideBubble(), hideAfterMs);
+      }
+    },
+    [hideBubble]
+  );
+
+  // 让气泡状态能随时在定时器里读到最新值
+  useEffect(() => {
+    bubbleRef.current = bubble;
+  }, [bubble]);
 
   // 初始化位置
   useEffect(() => {
@@ -91,7 +168,7 @@ export default function CatPet() {
       setPos(clamped);
     } else {
       const initial = clampToViewport({
-        x: (typeof window !== "undefined" ? window.innerWidth : 1200) - PET_SIZE - 24,
+        x: (typeof window !== "undefined" ? window.innerWidth : 1200) - PET_SIZE - 12,
         y: (typeof window !== "undefined" ? window.innerHeight : 800) - PET_SIZE - 24,
       });
       posRef.current = initial;
@@ -121,6 +198,87 @@ export default function CatPet() {
       window.clearTimeout(timer);
     };
   }, []);
+
+  // 进入页面主动打招呼:首次进入问候+引导右键;老访客若从未交互则温柔提醒一次
+  useEffect(() => {
+    if (!mounted) return;
+    clearGreet();
+    let greeted = false;
+    let used = false;
+    try {
+      greeted = localStorage.getItem(GREETED_KEY) === "1";
+      used = localStorage.getItem(USED_KEY) === "1";
+    } catch {
+      /* 忽略 */
+    }
+    if (!greeted) {
+      greetTimers.current.push(
+        window.setTimeout(() => {
+          showBubble("喵～你好呀", 0);
+          greetTimers.current.push(
+            window.setTimeout(() => {
+              showBubble("试试右键点击我", 2300);
+              greetTimers.current.push(
+                window.setTimeout(() => {
+                  try {
+                    localStorage.setItem(GREETED_KEY, "1");
+                  } catch {
+                    /* 忽略 */
+                  }
+                  hideBubble();
+                }, 2300)
+              );
+            }, 1500)
+          );
+        }, 650)
+      );
+    } else if (!used) {
+      greetTimers.current.push(
+        window.setTimeout(() => {
+          showBubble("喵～记得右键点点我哦", 2500);
+        }, 2600)
+      );
+    }
+    return () => clearGreet();
+  }, [mounted, clearGreet, showBubble, hideBubble]);
+
+  // 主动聊天:打招呼后每 9 秒说一句,说满 3 句后切换为每 30 秒一句(持续循环)
+  useEffect(() => {
+    if (!mounted) return;
+    const pick = (): string => {
+      let msg: string;
+      let guard = 0;
+      do {
+        msg = PROACTIVE[Math.floor(Math.random() * PROACTIVE.length)];
+        guard += 1;
+      } while (msg === lastProactive.current && guard < 6);
+      return msg;
+    };
+    let delay = 9000; // 当前间隔
+    let roundsLeft = 3; // 9 秒阶段剩余次数(打招呼除外)
+    let timer: number;
+    const tick = () => {
+      // 用户正在拖拽/点击,或已有气泡时,本拍顺延
+      if (
+        !draggingRef.current &&
+        gesture.current === "idle" &&
+        !bubbleRef.current
+      ) {
+        const msg = pick();
+        lastProactive.current = msg;
+        showBubble(msg, 6000);
+        if (roundsLeft > 0) {
+          roundsLeft -= 1;
+          if (roundsLeft === 0) {
+            delay = 30000; // 三轮后切到 30 秒循环
+          }
+        }
+      }
+      timer = window.setTimeout(tick, delay);
+    };
+    timer = window.setTimeout(tick, 9000); // 打招呼结束后再等 9 秒说第一句
+    return () => window.clearTimeout(timer);
+  }, [mounted, showBubble]);
 
   // 鼠标跟踪:猫轻微迎向鼠标方向(最多约 6px)
   useEffect(() => {
@@ -172,6 +330,7 @@ export default function CatPet() {
   function clampToViewport(p: { x: number; y: number }) {
     const w = typeof window !== "undefined" ? window.innerWidth : 1200;
     const h = typeof window !== "undefined" ? window.innerHeight : 800;
+    // 允许盒子右缘最多超出视口 8px,让小猫能贴到墙角落
     const x = Math.max(4, Math.min(w - PET_SIZE - 4, p.x));
     const y = Math.max(4, Math.min(h - PET_SIZE - 4, p.y));
     return { x, y };
@@ -182,6 +341,8 @@ export default function CatPet() {
   }
 
   const triggerInteraction = useCallback(() => {
+    // 主动交互过,停止引导与问候
+    markInteracted();
     // 轮流触发三种动画
     const a = ANIM_SEQ[animIndex.current % ANIM_SEQ.length];
     animIndex.current += 1;
@@ -194,10 +355,8 @@ export default function CatPet() {
     }, 620);
 
     // 随机中文气泡(背景不透明,不遮挡猫咪)
-    setBubble(randomBubble());
-    if (bubbleTimer.current) window.clearTimeout(bubbleTimer.current);
-    bubbleTimer.current = window.setTimeout(() => setBubble(null), 2300);
-  }, []);
+    showBubble(randomBubble(), 2300);
+  }, [markInteracted, showBubble]);
 
   const onMove = useCallback(
     (e: PointerEvent) => {
@@ -206,6 +365,7 @@ export default function CatPet() {
       const dy = e.clientY - downAt.current.y;
       if (
         gesture.current === "pressing" &&
+        pose === "sit" &&
         Math.abs(dx) + Math.abs(dy) > MOVE_THRESHOLD
       ) {
         // 超过阈值 -> 进入拖动
@@ -220,7 +380,7 @@ export default function CatPet() {
         document.body.style.cursor = "grabbing";
       }
       if (gesture.current === "dragging") {
-        setBubble(null);
+        hideBubble();
         const next = clampToViewport({
           x: downPos.current.x + dx,
           y: downPos.current.y + dy,
@@ -229,7 +389,7 @@ export default function CatPet() {
         setPos(next);
       }
     },
-    []
+    [hideBubble, pose]
   );
 
   const onUp = useCallback(() => {
@@ -243,9 +403,11 @@ export default function CatPet() {
     if (gesture.current === "dragging" && posRef.current) {
       try {
         localStorage.setItem(PET_STORAGE_KEY, JSON.stringify(posRef.current));
+        localStorage.setItem(PET_MOVED_KEY, "1");
       } catch {
         /* 存储失败时忽略 */
       }
+      markInteracted();
     }
       if (longPressTimer.current) {
         window.clearTimeout(longPressTimer.current);
@@ -256,7 +418,7 @@ export default function CatPet() {
       draggingRef.current = false;
       gesture.current = "idle";
     hasMoved.current = false;
-  }, [onMove, triggerInteraction]);
+  }, [onMove, triggerInteraction, markInteracted]);
 
   const onPointerDown = useCallback(
     (e: React.PointerEvent<HTMLDivElement>) => {
@@ -277,20 +439,22 @@ export default function CatPet() {
 
       // 长按进入拖动
       if (longPressTimer.current) window.clearTimeout(longPressTimer.current);
-      longPressTimer.current = window.setTimeout(() => {
-        if (gesture.current === "pressing" && !hasMoved.current) {
-          gesture.current = "dragging";
-          document.body.style.userSelect = "none";
-          document.body.style.cursor = "grabbing";
-          setBubble("按住我就可以拖走啦～");
-        }
-      }, LONG_PRESS_MS);
+      if (pose === "sit") {
+        longPressTimer.current = window.setTimeout(() => {
+          if (gesture.current === "pressing" && !hasMoved.current) {
+            gesture.current = "dragging";
+            document.body.style.userSelect = "none";
+            document.body.style.cursor = "grabbing";
+            showBubble("按住我就可以拖走啦～", 0);
+          }
+        }, LONG_PRESS_MS);
+      }
 
       window.addEventListener("pointermove", onMove);
       window.addEventListener("pointerup", onUp);
       window.addEventListener("pointercancel", onUp);
     },
-    [onMove, onUp]
+    [onMove, onUp, showBubble, pose]
   );
 
   function onContextMenu(e: React.MouseEvent) {
@@ -303,6 +467,8 @@ export default function CatPet() {
     ) {
       return;
     }
+    // 用户已按引导使用右键,停止主动引导
+    markInteracted();
     // 右侧放不下球组时翻转到左侧
     const current = posRef.current ?? { x: 0, y: 0 };
     const rightRoom =
@@ -325,6 +491,8 @@ export default function CatPet() {
   }
 
   function handleMenu(action: "assistant" | "latest" | "music") {
+    // 用户使用了菜单,停止主动引导
+    markInteracted();
     setMenuOpen(false);
     if (action === "assistant") {
       setAssistantOpen(true);
@@ -333,17 +501,29 @@ export default function CatPet() {
     } else {
       togglePlay();
       const current = tracks[index];
+      let msg: string;
       if (current) {
-        setBubble(`♪ 正在播放《${current.name}》`);
+        msg = `♪ 正在播放《${current.name}》`;
       } else {
-        setBubble(tracks.length === 0 ? "曲库还没加载出来,稍等一会儿哦～" : "音乐马上就来啦!");
+        msg =
+          tracks.length === 0
+            ? "曲库还没加载出来,稍等一会儿哦～"
+            : "音乐马上就来啦!";
       }
-      if (bubbleTimer.current) window.clearTimeout(bubbleTimer.current);
-      bubbleTimer.current = window.setTimeout(() => setBubble(null), 2400);
+      showBubble(msg, 2400);
     }
   }
 
   if (!mounted || !pos) return null;
+
+  // 探头与端坐使用不同位置:探头单独贴到右缘,端坐用常规角落位置
+  const catLeft =
+    pose === "peek"
+      ? (typeof window !== "undefined" ? window.innerWidth : 1200) -
+        PET_SIZE +
+        PEEK_RIGHT_EXTRA
+      : pos.x;
+  const catTop = pose === "peek" ? pos.y - PEEK_TOP_EXTRA : pos.y;
 
   return (
     <>
@@ -351,7 +531,7 @@ export default function CatPet() {
       <div
         ref={petRef}
         className="fixed z-[80] select-none"
-        style={{ left: pos.x, top: pos.y, width: PET_SIZE, height: PET_SIZE }}
+        style={{ left: catLeft, top: catTop, width: PET_SIZE, height: PET_SIZE }}
         onPointerDown={onPointerDown}
         onContextMenu={onContextMenu}
         role="button"
@@ -359,16 +539,16 @@ export default function CatPet() {
         title="点击互动 · 按住拖动 · 右键打开菜单"
       >
         <div className="relative h-full w-full">
-          {/* 对话气泡 */}
-          {bubble && (
-            <div
-              className="pet-bubble-in pointer-events-none absolute bottom-[calc(100%+12px)] left-1/2 z-[81] w-max max-w-[200px] -translate-x-1/2 rounded-2xl border border-stone-200 bg-white px-3.5 py-2 text-center text-xs font-medium leading-snug text-stone-700 shadow-lg shadow-stone-950/10"
-              style={{ whiteSpace: "pre-wrap" }}
-            >
-              {bubble}
-              <span className="absolute left-1/2 top-full -mt-1 h-2.5 w-2.5 -translate-x-1/2 rotate-45 border-b border-r border-stone-200 bg-white" />
-            </div>
-          )}
+          {/* 对话气泡:用透明度过渡实现淡入淡出 */}
+          <div
+            className={`pointer-events-none absolute bottom-[calc(100%+12px)] left-1/2 z-[81] w-max max-w-[200px] -translate-x-1/2 rounded-2xl border border-stone-200 bg-white px-3.5 py-2 text-center text-xs font-medium leading-snug text-stone-700 shadow-lg shadow-stone-950/10 transition-opacity duration-300 ease-out ${
+              bubbleOpen ? "opacity-100" : "opacity-0"
+            }`}
+            style={{ whiteSpace: "pre-wrap" }}
+          >
+            {bubble ?? ""}
+            <span className="absolute left-1/2 top-full -mt-1 h-2.5 w-2.5 -translate-x-1/2 rotate-45 border-b border-r border-stone-200 bg-white" />
+          </div>
 
           {/* 呼吸层(scaleY+tranlateY) */}
           <div className="pet-breathe h-full w-full">
@@ -378,7 +558,24 @@ export default function CatPet() {
               style={{ transform: `translate(${look.x}px, ${look.y}px)` }}
             >
               {/* 互动动画层(jump/squash/shake) */}
-              <div className={`h-full w-full ${anim ? `pet-anim-${anim}` : ""}`}>
+              <div className={`relative h-full w-full ${anim ? `pet-anim-${anim}` : ""}`}>
+                {/* 初始:探头谨慎的样子(未交互前) */}
+                <Image
+                  src="/images/cat-pet-peek.png"
+                  alt="uswrite小猫(探头)"
+                  width={PET_SIZE}
+                  height={PET_SIZE}
+                  priority
+                  draggable={false}
+                  className={`pointer-events-none absolute inset-0 h-full w-full object-contain transition-opacity duration-300 ease-out ${
+                    pose === "peek" && !menuOpen ? "opacity-100" : "opacity-0"
+                  } ${
+                    interacting
+                      ? "brightness-105 saturate-105"
+                      : "hover:brightness-105 hover:saturate-105"
+                  }`}
+                />
+                {/* 端坐 / 眨眼(交互后) */}
                 <Image
                   src={blinking ? "/images/cat-pet-blink.png" : "/images/cat-pet.png"}
                   alt="uswrite小猫"
@@ -386,7 +583,25 @@ export default function CatPet() {
                   height={PET_SIZE}
                   priority
                   draggable={false}
-                  className={`pointer-events-none h-full w-full object-contain transition-[filter] duration-200 ${
+                  className={`pointer-events-none absolute inset-0 h-full w-full object-contain transition-opacity duration-300 ease-out ${
+                    pose === "sit" && !menuOpen ? "opacity-100" : "opacity-0"
+                  } ${
+                    interacting
+                      ? "brightness-105 saturate-105"
+                      : "hover:brightness-105 hover:saturate-105"
+                  }`}
+                />
+                {/* 右键时:举手打招呼图,与原图交叉淡入淡出 */}
+                <Image
+                  src="/images/cat-pet-raised.png"
+                  alt="uswrite小猫(举手)"
+                  width={PET_SIZE}
+                  height={PET_SIZE}
+                  priority
+                  draggable={false}
+                  className={`pointer-events-none absolute inset-0 h-full w-full object-contain transition-opacity duration-300 ease-out ${
+                    menuOpen ? "opacity-100" : "opacity-0"
+                  } ${
                     interacting
                       ? "brightness-105 saturate-105"
                       : "hover:brightness-105 hover:saturate-105"
