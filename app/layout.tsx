@@ -4,7 +4,7 @@ import "./globals.css";
 import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
 import MusicPlayer from "@/components/music-player";
-import AssistantWidget from "@/components/assistant-widget";
+import CatPet from "@/components/cat-pet";
 import { siteConfig } from "@/lib/site";
 import { getSessionUser, getSpringToken, unreadNotificationCount } from "@/lib/server-session";
 
@@ -65,7 +65,7 @@ export default async function RootLayout({
         <main className="flex-1">{children}</main>
         <Footer />
         <MusicPlayer />
-        <AssistantWidget />
+        <CatPet />
       </body>
     </html>
   );

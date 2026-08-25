@@ -24,7 +24,7 @@ export default async function HomePage() {
       {/* 内容区:从首屏下方滑上来盖住背景 */}
       <div className="relative z-10 mt-[100vh] rounded-t-[2.25rem] border-t border-stone-200 bg-[var(--paper)] shadow-[0_-28px_56px_-28px_rgba(0,0,0,0.4)] dark:border-stone-800">
         {/* 最新文章 */}
-        <section className="mx-auto w-full max-w-6xl px-6 py-16 lg:py-24">
+        <section id="latest" className="mx-auto w-full max-w-6xl scroll-mt-24 px-6 py-16 lg:py-24">
           <LatestPosts posts={latestPosts} />
         </section>
 
