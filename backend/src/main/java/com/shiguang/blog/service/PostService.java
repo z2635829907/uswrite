@@ -3,6 +3,7 @@ package com.shiguang.blog.service;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.shiguang.blog.common.ApiException;
+import com.shiguang.blog.ai.RAGService;
 import com.shiguang.blog.dto.PostRequest;
 import com.shiguang.blog.entity.Bookmark;
 import com.shiguang.blog.entity.Comment;
@@ -51,6 +52,7 @@ public class PostService {
   private final BookmarkMapper bookmarkMapper;
   private final CommentMapper commentMapper;
   private final NotificationService notificationService;
+  private final RAGService ragService;
 
   public PostService(
       PostMapper postMapper,
@@ -58,13 +60,15 @@ public class PostService {
       LikeMapper likeMapper,
       BookmarkMapper bookmarkMapper,
       CommentMapper commentMapper,
-      NotificationService notificationService) {
+      NotificationService notificationService,
+      RAGService ragService) {
     this.postMapper = postMapper;
     this.userMapper = userMapper;
     this.likeMapper = likeMapper;
     this.bookmarkMapper = bookmarkMapper;
     this.commentMapper = commentMapper;
     this.notificationService = notificationService;
+    this.ragService = ragService;
   }
 
   public static List<String> parseTags(String tags) {
@@ -306,6 +310,7 @@ public class PostService {
     post.setRejection_reason("");
     post.setUpdated_at(System.currentTimeMillis());
     postMapper.updateById(post);
+    ragService.syncPost(post);
     return Map.of("status", post.getStatus());
   }
 
@@ -318,6 +323,7 @@ public class PostService {
       throw new ApiException(403, "没有权限删除这篇文章");
     }
     postMapper.deleteById(postId);
+    ragService.removePost(postId);
   }
 
   public Map<String, Object> toggleLike(Long userId, Long postId) {

@@ -3,7 +3,11 @@
 import { useCallback, useEffect, useState } from "react";
 
 export const PLAYLIST_ID = "18243794271";
-const METING_API = `https://api.i-meto.com/meting/api?server=netease&type=playlist&id=${PLAYLIST_ID}&r=`;
+// 歌单数据源:按顺序尝试,哪个能拉到用哪个(避免单点故障)
+const METING_SOURCES = [
+  `https://api.injahow.cn/meting/?server=netease&type=playlist&id=${PLAYLIST_ID}`,
+  `https://api.i-meto.com/meting/api?server=netease&type=playlist&id=${PLAYLIST_ID}`,
+];
 
 const APLAYER_CDN = {
   css: "https://cdn.jsdelivr.net/npm/aplayer@1.10.1/dist/APlayer.min.css",
@@ -113,16 +117,31 @@ function loadPlayerDeps(): Promise<boolean> {
 }
 
 async function fetchPlaylist(): Promise<Track[]> {
-  const res = await fetch(METING_API + Math.random());
-  if (!res.ok) throw new Error("歌单加载失败");
-  const data = (await res.json()) as Track[];
-  return data.map((t) => ({
-    name: t.name || t.title || "未知歌曲",
-    artist: t.artist || t.author || "未知歌手",
-    url: t.url,
-    pic: t.pic || t.cover || "",
-    lrc: t.lrc,
-  }));
+  for (const base of METING_SOURCES) {
+    try {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), 8000);
+      const sep = base.includes("?") ? "&" : "?";
+      const res = await fetch(base + sep + "r=" + Math.random(), {
+        signal: controller.signal,
+      });
+      clearTimeout(timer);
+      if (!res.ok) continue;
+      const data = (await res.json()) as Track[];
+      if (Array.isArray(data) && data.length > 0) {
+        return data.map((t) => ({
+          name: t.name || t.title || "未知歌曲",
+          artist: t.artist || t.author || "未知歌手",
+          url: t.url,
+          pic: t.pic || t.cover || "",
+          lrc: t.lrc,
+        }));
+      }
+    } catch {
+      // 当前源失败,尝试下一个
+    }
+  }
+  throw new Error("歌单加载失败");
 }
 
 function getSingleton() {

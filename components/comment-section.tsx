@@ -6,6 +6,7 @@ import { Trash } from "@phosphor-icons/react";
 import { Avatar } from "./avatar";
 import { timeAgo } from "@/lib/utils";
 import type { Comment } from "@/lib/types";
+import { toast } from "@/lib/toast";
 
 export function CommentSection({
   postId,
@@ -26,6 +27,7 @@ export function CommentSection({
   const [content, setContent] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [confirmingId, setConfirmingId] = useState<number | null>(null);
   const router = useRouter();
 
   async function submit(e: React.FormEvent) {
@@ -47,6 +49,7 @@ export function CommentSection({
       if (!res.ok) throw new Error(data.error || "评论失败");
       setComments((prev) => [...prev, data.comment]);
       setContent("");
+      toast("评论已发布");
       router.refresh();
     } catch (e) {
       setError(e instanceof Error ? e.message : "评论失败，请稍后再试");
@@ -59,6 +62,8 @@ export function CommentSection({
     const res = await fetch(`/api/comments/${commentId}`, { method: "DELETE" });
     if (res.ok) {
       setComments((prev) => prev.filter((c) => c.id !== commentId));
+      setConfirmingId(null);
+      toast("评论已删除");
       router.refresh();
     }
   }
@@ -122,14 +127,36 @@ export function CommentSection({
                   </span>
                 </div>
                 {(c.user_id === currentUserId || isPostAuthor || isAdmin) && (
-                  <button
-                    type="button"
-                    onClick={() => remove(c.id)}
-                    aria-label="删除评论"
-                    className="rounded-full p-1.5 text-stone-400 transition hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950"
-                  >
-                    <Trash size={15} />
-                  </button>
+                  confirmingId === c.id ? (
+                    <span className="flex items-center gap-2">
+                      <span className="text-xs text-red-600 dark:text-red-400">
+                        确认删除？
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => remove(c.id)}
+                        className="rounded-full bg-red-600 px-2.5 py-1 text-xs font-semibold text-white transition hover:bg-red-700"
+                      >
+                        删除
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setConfirmingId(null)}
+                        className="rounded-full border border-stone-300 px-2.5 py-1 text-xs text-stone-600 transition hover:border-stone-400 dark:border-stone-700 dark:text-stone-300"
+                      >
+                        取消
+                      </button>
+                    </span>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => setConfirmingId(c.id)}
+                      aria-label="删除评论"
+                      className="rounded-full p-1.5 text-stone-400 transition hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950"
+                    >
+                      <Trash size={15} />
+                    </button>
+                  )
                 )}
               </div>
               <p className="mt-2 whitespace-pre-wrap text-sm leading-relaxed text-stone-600 dark:text-stone-300">

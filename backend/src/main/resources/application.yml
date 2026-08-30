@@ -26,7 +26,7 @@ app:
   llm:
     base-url: ${SPRING_LLM_BASE_URL:https://dashscope.aliyuncs.com/compatible-mode/v1}
     api-key: ${SPRING_LLM_API_KEY:}
-    model: ${SPRING_LLM_MODEL:qwen3.7-max}
+    model: ${SPRING_LLM_MODEL:glm-5.2}
     embedding-model: ${SPRING_LLM_EMBEDDING_MODEL:text-embedding-v3}
     temperature: 0.4
-    max-tokens: 800
+    max-tokens: 4096

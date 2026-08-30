@@ -54,3 +54,20 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# ===== 本机运行 / 开发临时产物(一律不提交) =====
+# 启动日志
+/server-run*.log
+/backend/server-run*.log
+/fe-dev*.log
+/fe-dev-err*.log
+# 私有备忘录与临时脚本
+/STARTUP.md
+/CHAT_SUMMARY.md
+/flip.ps1
+/backend/run.args
+# 图片处理临时产物
+/cat_*.png
+/site_ref.png
+# 编辑器
+/.vscode/

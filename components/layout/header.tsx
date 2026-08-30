@@ -76,6 +76,7 @@ export function Header({
               <Link
                 href="/notifications"
                 aria-label="通知"
+                title="通知"
                 className={`relative inline-flex h-9 w-9 items-center justify-center rounded-full transition ${
                   overlay
                     ? "text-stone-100/90 hover:bg-white/10 hover:text-white"
@@ -97,7 +98,10 @@ export function Header({
                 写文章
               </Link>
               <details className="menu relative">
-                <summary className="cursor-pointer rounded-full transition hover:opacity-80">
+                <summary
+                  title="账号菜单"
+                  className="cursor-pointer rounded-full transition hover:opacity-80"
+                >
                   <Avatar
                     name={user.display_name}
                     seed={user.avatar_seed || user.username}

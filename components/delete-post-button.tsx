@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Trash } from "@phosphor-icons/react";
+import { toast } from "@/lib/toast";
 
 export function DeletePostButton({ postId }: { postId: number }) {
   const [confirming, setConfirming] = useState(false);
@@ -13,11 +14,13 @@ export function DeletePostButton({ postId }: { postId: number }) {
     setBusy(true);
     const res = await fetch(`/api/posts/${postId}`, { method: "DELETE" });
     if (res.ok) {
+      toast("文章已删除");
       router.push("/posts");
       router.refresh();
     } else {
       setBusy(false);
       setConfirming(false);
+      toast("删除失败，请稍后再试", "error");
     }
   }
 

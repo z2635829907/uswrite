@@ -3,6 +3,7 @@ package com.shiguang.blog.service;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.shiguang.blog.common.ApiException;
+import com.shiguang.blog.ai.RAGService;
 import com.shiguang.blog.entity.Comment;
 import com.shiguang.blog.entity.Post;
 import com.shiguang.blog.entity.User;
@@ -28,18 +29,21 @@ public class AdminService {
   private final CommentMapper commentMapper;
   private final PostService postService;
   private final NotificationService notificationService;
+  private final RAGService ragService;
 
   public AdminService(
       UserMapper userMapper,
       PostMapper postMapper,
       CommentMapper commentMapper,
       PostService postService,
-      NotificationService notificationService) {
+      NotificationService notificationService,
+      RAGService ragService) {
     this.userMapper = userMapper;
     this.postMapper = postMapper;
     this.commentMapper = commentMapper;
     this.postService = postService;
     this.notificationService = notificationService;
+    this.ragService = ragService;
   }
 
   public void requireAdmin(Long userId) {
@@ -108,6 +112,7 @@ public class AdminService {
     }
     post.setUpdated_at(now);
     postMapper.updateById(post);
+    ragService.syncPost(post);
     notificationService.create(post.getAuthor_id(), adminId, "review", postId, content);
   }
 

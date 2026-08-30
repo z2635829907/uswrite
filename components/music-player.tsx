@@ -63,6 +63,9 @@ export default function MusicPlayer() {
     startPos: { x: number; y: number };
     moved: boolean;
   } | null>(null);
+  // 记录本次按下到松开之间是否发生过拖动。
+  // 单独用 ref 保存,避免 pointerup 清空 dragRef 后 click 读不到"刚拖过"。
+  const dragMovedRef = useRef(false);
   const posRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
   const [pos, setPos] = useState<{ x: number; y: number }>(() =>
     loadInitialPos()
@@ -149,6 +152,7 @@ export default function MusicPlayer() {
       if (e.button !== 0 && e.pointerType === "mouse") return;
       const startPos = { ...pos };
       posRef.current = startPos;
+      dragMovedRef.current = false;
       dragRef.current = {
         pointerId: e.pointerId,
         startX: e.clientX,
@@ -165,7 +169,10 @@ export default function MusicPlayer() {
         if (!drag || ev.pointerId !== drag.pointerId) return;
         const dx = ev.clientX - drag.startX;
         const dy = ev.clientY - drag.startY;
-        if (Math.abs(dx) + Math.abs(dy) > 4) drag.moved = true;
+        if (Math.abs(dx) + Math.abs(dy) > 4) {
+          drag.moved = true;
+          dragMovedRef.current = true;
+        }
         const next = {
           x: drag.startPos.x + dx,
           y: drag.startPos.y + dy,
@@ -208,7 +215,7 @@ export default function MusicPlayer() {
     [pos, mini]
   );
 
-  const didDrag = useCallback(() => dragRef.current?.moved ?? false, []);
+  const didDrag = useCallback(() => dragMovedRef.current, []);
 
   const isInteractiveTarget = useCallback((target: EventTarget | null) => {
     if (!(target instanceof Element)) return true;

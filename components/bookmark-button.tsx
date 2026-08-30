@@ -3,6 +3,7 @@
 import { BookmarkSimple } from "@phosphor-icons/react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { toast } from "@/lib/toast";
 
 export function BookmarkButton({
   postId,
@@ -33,9 +34,11 @@ export function BookmarkButton({
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
       setBookmarked(data.bookmarked);
+      toast(data.bookmarked ? "已加入收藏" : "已取消收藏");
       router.refresh();
     } catch {
       setBookmarked(initialBookmarked);
+      toast("操作失败，请稍后再试", "error");
     } finally {
       setBusy(false);
     }

@@ -3,6 +3,7 @@
 import { Heart } from "@phosphor-icons/react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { toast } from "@/lib/toast";
 
 export function LikeButton({
   postId,
@@ -36,10 +37,12 @@ export function LikeButton({
       if (!res.ok) throw new Error(data.error);
       setLiked(data.liked);
       setCount(data.count);
+      toast(data.liked ? "已点赞" : "已取消点赞");
       router.refresh();
     } catch {
       setLiked(initialLiked);
       setCount(initialCount);
+      toast("操作失败，请稍后再试", "error");
     } finally {
       setBusy(false);
     }

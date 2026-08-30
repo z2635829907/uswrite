@@ -11,6 +11,8 @@ import {
 import { notFound } from "next/navigation";
 import { Avatar } from "@/components/avatar";
 import { MarkdownView } from "@/components/markdown-view";
+import { ArticleToc } from "@/components/article-toc";
+import { ScrollToTopButton } from "@/components/scroll-to-top-button";
 import { LikeButton } from "@/components/like-button";
 import { BookmarkButton } from "@/components/bookmark-button";
 import { CommentSection } from "@/components/comment-section";
@@ -49,6 +51,7 @@ export default async function PostPage({
 
   return (
     <article className="mx-auto w-full max-w-3xl px-6 py-10 lg:py-14">
+      <ScrollToTopButton />
       <ViewTracker postId={post.id} />
 
       <Link
@@ -138,6 +141,8 @@ export default async function PostPage({
           />
         </div>
       )}
+
+      <ArticleToc content={post.content} />
 
       <div className="mt-10">
         <MarkdownView content={post.content} />

@@ -46,21 +46,39 @@ public class ChatHistoryService {
                 .last("LIMIT " + limit));
     List<Map<String, Object>> result = new ArrayList<>();
     for (ChatMessage row : rows) {
-      Map<String, Object> item = new LinkedHashMap<>();
-      item.put("id", row.getId());
-      item.put("role", row.getRole());
-      item.put("content", row.getContent());
-      item.put("created_at", row.getCreated_at());
-      if (row.getSources() != null && !row.getSources().isBlank()) {
-        try {
-          item.put("sources", objectMapper.readValue(row.getSources(), List.class));
-        } catch (Exception ignored) {
-          // 来源解析失败则忽略
-        }
-      }
-      result.add(item);
+      result.add(toMap(row));
     }
     return result;
+  }
+
+  /** 取最近的 limit 条聊天记录(按时间正序),用于多轮上下文注入。 */
+  public List<Map<String, Object>> recent(Long userId, int limit) {
+    List<ChatMessage> rows =
+        chatMessageMapper.selectList(
+            new LambdaQueryWrapper<ChatMessage>()
+                .eq(ChatMessage::getUser_id, userId)
+                .orderByDesc(ChatMessage::getCreated_at)
+                .last("LIMIT " + limit));
+    java.util.Collections.reverse(rows);
+    List<Map<String, Object>> result = new ArrayList<>();
+    for (ChatMessage row : rows) result.add(toMap(row));
+    return result;
+  }
+
+  private Map<String, Object> toMap(ChatMessage row) {
+    Map<String, Object> item = new LinkedHashMap<>();
+    item.put("id", row.getId());
+    item.put("role", row.getRole());
+    item.put("content", row.getContent());
+    item.put("created_at", row.getCreated_at());
+    if (row.getSources() != null && !row.getSources().isBlank()) {
+      try {
+        item.put("sources", objectMapper.readValue(row.getSources(), List.class));
+      } catch (Exception ignored) {
+        // 来源解析失败则忽略
+      }
+    }
+    return item;
   }
 
   public void clear(Long userId) {

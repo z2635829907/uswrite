@@ -72,6 +72,7 @@ export function NavLinks({ overlay = false }: { overlay?: boolean }) {
       <div className="relative group">
         <button
           type="button"
+          title="分类"
           className={`flex items-center gap-1.5 text-sm transition ${
             pathname.startsWith("/categories")
               ? `font-semibold ${activeCls}`
@@ -130,6 +131,7 @@ export function MobileNav({ overlay = false }: { overlay?: boolean }) {
         type="button"
         onClick={() => setOpen(!open)}
         aria-label="菜单"
+        title="菜单"
         className={`inline-flex h-9 w-9 items-center justify-center rounded-full transition ${
           overlay
             ? "text-stone-100/90 hover:text-white"
