@@ -1,4 +1,5 @@
 import { springFetch } from "./spring";
+import { assistantFetch } from "./assistant";
 import type { Comment, NotificationItem, PostWithMeta, PublicUser } from "./types";
 
 export interface PostFilters {
@@ -166,7 +167,7 @@ export interface RagEntry {
 export async function getAssistantHistory(
   token?: string | null
 ): Promise<Array<Record<string, unknown>>> {
-  const data = await springFetch<{ messages: Array<Record<string, unknown>> }>(
+  const data = await assistantFetch<{ messages: Array<Record<string, unknown>> }>(
     "/api/assistant/history",
     { token }
   );
@@ -174,11 +175,11 @@ export async function getAssistantHistory(
 }
 
 export async function clearAssistantHistory(token?: string | null): Promise<void> {
-  await springFetch("/api/assistant/history", { method: "DELETE", token });
+  await assistantFetch("/api/assistant/history", { method: "DELETE", token });
 }
 
 export async function getAdminRagEntries(token?: string | null): Promise<RagEntry[]> {
-  const data = await springFetch<{ entries: RagEntry[] }>("/api/admin/rag", { token });
+  const data = await assistantFetch<{ entries: RagEntry[] }>("/api/admin/rag", { token });
   return data.entries || [];
 }
 
@@ -186,7 +187,7 @@ export async function createRagEntry(
   token: string | null | undefined,
   data: { title: string; content: string }
 ): Promise<void> {
-  await springFetch("/api/admin/rag", { method: "POST", body: data, token });
+  await assistantFetch("/api/admin/rag", { method: "POST", body: data, token });
 }
 
 export async function updateRagEntry(
@@ -194,14 +195,14 @@ export async function updateRagEntry(
   id: number,
   data: { title: string; content: string }
 ): Promise<void> {
-  await springFetch(`/api/admin/rag/${id}`, { method: "PATCH", body: data, token });
+  await assistantFetch(`/api/admin/rag/${id}`, { method: "PATCH", body: data, token });
 }
 
 export async function deleteRagEntry(
   token: string | null | undefined,
   id: number
 ): Promise<void> {
-  await springFetch(`/api/admin/rag/${id}`, { method: "DELETE", token });
+  await assistantFetch(`/api/admin/rag/${id}`, { method: "DELETE", token });
 }
 
 // ---------- 后台管理接口 ----------

@@ -1,0 +1,26 @@
+[
+  {"question": "青海湖的夏天有什么特色", "expected": [6], "type": "keyword"},
+  {"question": "早起对生活有什么改变", "expected": [1], "type": "keyword"},
+  {"question": "读完一本书之后应该做什么", "expected": [2], "type": "keyword"},
+  {"question": "在京都怎么玩", "expected": [7], "type": "keyword"},
+  {"question": "川西自驾翻山经历", "expected": [8], "type": "keyword"},
+  {"question": "海边的清晨是什么样子", "expected": [9], "type": "keyword"},
+  {"question": "通勤路上能做什么", "expected": [12], "type": "keyword"},
+  {"question": "巷口早餐铺子的故事", "expected": [21], "type": "keyword"},
+  {"question": "篮球场上的少年时光", "expected": [24], "type": "keyword"},
+  {"question": "剧本杀体验怎么样", "expected": [28], "type": "keyword"},
+  {"question": "塞尔达旷野之息通关感受", "expected": [29], "type": "keyword"},
+  {"question": "有什么独立游戏推荐", "expected": [31], "type": "keyword"},
+  {"question": "台风天的故事", "expected": [32, 40, 43, 46], "type": "keyword"},
+
+  {"question": "环湖骑车看星空的旅行", "expected": [6], "type": "semantic"},
+  {"question": "想找个地方慢慢发呆看风景", "expected": [3], "type": "semantic"},
+  {"question": "把家里用不着的东西清理掉", "expected": [13], "type": "semantic"},
+  {"question": "怎么教上了年纪的家人用智能机", "expected": [14], "type": "semantic"},
+  {"question": "和恋人分隔两地怎么相处", "expected": [15], "type": "semantic"},
+  {"question": "跑一场长距离跑步比赛的经历", "expected": [23], "type": "semantic"},
+  {"question": "通关游戏之后有点空落落", "expected": [29], "type": "semantic"},
+  {"question": "一个人住给自己做顿饭", "expected": [11], "type": "semantic"},
+  {"question": "阳台种满花花草草", "expected": [10], "type": "semantic"},
+  {"question": "深夜饿了吃点什么暖心", "expected": [18], "type": "semantic"}
+]

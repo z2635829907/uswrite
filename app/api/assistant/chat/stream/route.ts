@@ -4,10 +4,10 @@ import { fail } from "@/lib/api";
 
 export const dynamic = "force-dynamic";
 
-// Spring Boot 后端地址,可通过环境变量覆盖
-const BASE_URL = process.env.SPRING_API_URL || "http://localhost:8080";
+// AI 助手服务(FastAPI + LangChain)地址,可通过环境变量覆盖
+const BASE_URL = process.env.ASSISTANT_API_URL || "http://localhost:8000";
 
-/** 透传后端的 SSE 流式回答给前端。 */
+/** 透传 AI 助手服务的 SSE 流式回答给前端。 */
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();

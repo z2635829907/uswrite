@@ -12,7 +12,7 @@ const PET_MOVED_KEY = "shiguang-cat-pet-moved";
 const GREETED_KEY = "shiguang-cat-pet-greeted";
 const USED_KEY = "shiguang-cat-pet-used";
 const PET_SIZE = 120; // 猫咪显示宽度(px)
-const PEEK_RIGHT_EXTRA = 31.5; // 探头状态额外往右贴的像素,让竖墙贴近屏幕右缘
+const PEEK_RIGHT_EXTRA = 26.5; // 探头状态额外往右贴的像素,让竖墙贴近屏幕右缘
 const PEEK_TOP_EXTRA = 16; // 探头状态额外往上抬的像素,让探头猫更靠上
 const LONG_PRESS_MS = 260; // 长按判定
 const MOVE_THRESHOLD = 7; // 开始拖动的位移阈值(px)
@@ -92,7 +92,6 @@ export default function CatPet() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [assistantOpen, setAssistantOpen] = useState(false);
   const [blinking, setBlinking] = useState(false);
-  const [look, setLook] = useState({ x: 0, y: 0 });
   const [orbSide, setOrbSide] = useState<"left" | "right">("right");
 
   const animIndex = useRef(0);
@@ -109,8 +108,6 @@ export default function CatPet() {
   const animTimer = useRef<number | null>(null);
   const bubbleTimer = useRef<number | null>(null);
   const bubbleHideTimer = useRef<number | null>(null);
-  const lookFrame = useRef<number | null>(null);
-  const lookTarget = useRef({ x: 0, y: 0 });
   const draggingRef = useRef(false);
   const greetTimers = useRef<number[]>([]);
   const bubbleRef = useRef<string | null>(null);
@@ -279,35 +276,6 @@ export default function CatPet() {
     timer = window.setTimeout(tick, 9000); // 打招呼结束后再等 9 秒说第一句
     return () => window.clearTimeout(timer);
   }, [mounted, showBubble]);
-
-  // 鼠标跟踪:猫轻微迎向鼠标方向(最多约 6px)
-  useEffect(() => {
-    const onMouseMove = (e: MouseEvent) => {
-      if (draggingRef.current) return;
-      const p = posRef.current;
-      if (!p) return;
-      const cx = p.x + PET_SIZE / 2;
-      const cy = p.y + PET_SIZE / 2;
-      // 以视口中心为基准归一化
-      const nx = (e.clientX - cx) / (window.innerWidth || 1);
-      const ny = (e.clientY - cy) / (window.innerHeight || 1);
-      const len = Math.hypot(nx, ny) || 1;
-      const clamped = Math.min(1, len);
-      lookTarget.current = {
-        x: (nx / len) * clamped * 6,
-        y: (ny / len) * clamped * 5,
-      };
-      if (lookFrame.current) cancelAnimationFrame(lookFrame.current);
-      lookFrame.current = requestAnimationFrame(() => {
-        setLook(lookTarget.current);
-      });
-    };
-    window.addEventListener("mousemove", onMouseMove);
-    return () => {
-      window.removeEventListener("mousemove", onMouseMove);
-      if (lookFrame.current) cancelAnimationFrame(lookFrame.current);
-    };
-  }, []);
 
   // 点击外部关闭工具栏
   useEffect(() => {
@@ -552,62 +520,56 @@ export default function CatPet() {
 
           {/* 呼吸层(scaleY+tranlateY) */}
           <div className="pet-breathe h-full w-full">
-            {/* 迎向鼠标层(平移) */}
-            <div
-              className="pet-look h-full w-full"
-              style={{ transform: `translate(${look.x}px, ${look.y}px)` }}
-            >
-              {/* 互动动画层(jump/squash/shake) */}
-              <div className={`relative h-full w-full ${anim ? `pet-anim-${anim}` : ""}`}>
-                {/* 初始:探头谨慎的样子(未交互前) */}
-                <Image
-                  src="/images/cat-pet-peek.png"
-                  alt="uswrite小猫(探头)"
-                  width={PET_SIZE}
-                  height={PET_SIZE}
-                  priority
-                  draggable={false}
-                  className={`pointer-events-none absolute inset-0 h-full w-full object-contain transition-opacity duration-300 ease-out ${
-                    pose === "peek" && !menuOpen ? "opacity-100" : "opacity-0"
-                  } ${
-                    interacting
-                      ? "brightness-105 saturate-105"
-                      : "hover:brightness-105 hover:saturate-105"
-                  }`}
-                />
-                {/* 端坐 / 眨眼(交互后) */}
-                <Image
-                  src={blinking ? "/images/cat-pet-blink.png" : "/images/cat-pet.png"}
-                  alt="uswrite小猫"
-                  width={PET_SIZE}
-                  height={PET_SIZE}
-                  priority
-                  draggable={false}
-                  className={`pointer-events-none absolute inset-0 h-full w-full object-contain transition-opacity duration-300 ease-out ${
-                    pose === "sit" && !menuOpen ? "opacity-100" : "opacity-0"
-                  } ${
-                    interacting
-                      ? "brightness-105 saturate-105"
-                      : "hover:brightness-105 hover:saturate-105"
-                  }`}
-                />
-                {/* 右键时:举手打招呼图,与原图交叉淡入淡出 */}
-                <Image
-                  src="/images/cat-pet-raised.png"
-                  alt="uswrite小猫(举手)"
-                  width={PET_SIZE}
-                  height={PET_SIZE}
-                  priority
-                  draggable={false}
-                  className={`pointer-events-none absolute inset-0 h-full w-full object-contain transition-opacity duration-300 ease-out ${
-                    menuOpen ? "opacity-100" : "opacity-0"
-                  } ${
-                    interacting
-                      ? "brightness-105 saturate-105"
-                      : "hover:brightness-105 hover:saturate-105"
-                  }`}
-                />
-              </div>
+            {/* 互动动画层(jump/squash/shake) */}
+            <div className={`relative h-full w-full ${anim ? `pet-anim-${anim}` : ""}`}>
+              {/* 初始:探头谨慎的样子(未交互前) */}
+              <Image
+                src="/images/cat-pet-peek.png"
+                alt="uswrite小猫(探头)"
+                width={PET_SIZE}
+                height={PET_SIZE}
+                priority
+                draggable={false}
+                className={`pointer-events-none absolute inset-0 h-full w-full object-contain transition-opacity duration-300 ease-out ${
+                  pose === "peek" && !menuOpen ? "opacity-100" : "opacity-0"
+                } ${
+                  interacting
+                    ? "brightness-105 saturate-105"
+                    : "hover:brightness-105 hover:saturate-105"
+                }`}
+              />
+              {/* 端坐 / 眨眼(交互后) */}
+              <Image
+                src={blinking ? "/images/cat-pet-blink.png" : "/images/cat-pet.png"}
+                alt="uswrite小猫"
+                width={PET_SIZE}
+                height={PET_SIZE}
+                priority
+                draggable={false}
+                className={`pointer-events-none absolute inset-0 h-full w-full object-contain transition-opacity duration-300 ease-out ${
+                  pose === "sit" && !menuOpen ? "opacity-100" : "opacity-0"
+                } ${
+                  interacting
+                    ? "brightness-105 saturate-105"
+                    : "hover:brightness-105 hover:saturate-105"
+                }`}
+              />
+              {/* 右键时:举手打招呼图,与原图交叉淡入淡出 */}
+              <Image
+                src="/images/cat-pet-raised.png"
+                alt="uswrite小猫(举手)"
+                width={PET_SIZE}
+                height={PET_SIZE}
+                priority
+                draggable={false}
+                className={`pointer-events-none absolute inset-0 h-full w-full object-contain transition-opacity duration-300 ease-out ${
+                  menuOpen ? "opacity-100" : "opacity-0"
+                } ${
+                  interacting
+                    ? "brightness-105 saturate-105"
+                    : "hover:brightness-105 hover:saturate-105"
+                }`}
+              />
             </div>
           </div>
           {/* 右键工具栏:小球从上到下排列在小猫右侧 */}

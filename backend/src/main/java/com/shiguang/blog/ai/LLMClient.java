@@ -46,7 +46,8 @@ public class LLMClient {
             "messages", messages,
             "temperature", props.getTemperature(),
             "max_tokens", props.getMaxTokens(),
-            "stream", true);
+            "stream", true,
+            "thinking", Map.of("type", "disabled"));
     String payload = objectMapper.writeValueAsString(body);
     HttpRequest request =
         HttpRequest.newBuilder(URI.create(props.getBaseUrl() + "/chat/completions"))
@@ -91,7 +92,8 @@ public class LLMClient {
             "messages", messages,
             "temperature", props.getTemperature(),
             "max_tokens", props.getMaxTokens(),
-            "stream", false);
+            "stream", false,
+            "thinking", Map.of("type", "disabled"));
     String resp =
         restClient
             .post()

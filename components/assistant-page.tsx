@@ -6,6 +6,7 @@ import { ArrowClockwise, PaperPlaneTilt, Sparkle, Trash } from "@phosphor-icons/
 import { AssistantMarkdown } from "./assistant-markdown";
 import { useAssistantChat } from "./use-assistant-chat";
 import { AssistantSources } from "./assistant-sources";
+import { TypeWriter } from "./typewriter";
 
 export default function AssistantPage() {
   const endRef = useRef<HTMLDivElement>(null);
@@ -104,10 +105,12 @@ export default function AssistantPage() {
                     <>
                       {busy && i === messages.length - 1 && phase === "loading" ? (
                         <p className="animate-pulse text-sm text-stone-400">
-                          正在查找相关文章…
+                          正在检索文章并思考…
                         </p>
                       ) : busy && i === messages.length - 1 ? (
-                        <p className="whitespace-pre-wrap">{msg.content}</p>
+                        <p className="whitespace-pre-wrap">
+                          <TypeWriter text={msg.content} />
+                        </p>
                       ) : (
                         <AssistantMarkdown content={msg.content} />
                       )}

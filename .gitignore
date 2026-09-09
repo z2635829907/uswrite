@@ -32,12 +32,23 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env*
+!.env.example
 
 # vercel
 .vercel
 
 # local database
 /data
+
+# python (ai-service)
+__pycache__/
+*.py[cod]
+ai-service/*.log
+ai-service/.venv
+
+# 本机工具与 WorkBuddy 项目数据(不提交)
+/.workbuddy/
+/.dshtools/
 
 # local logs
 /server.log
