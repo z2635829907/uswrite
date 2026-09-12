@@ -1,8 +1,12 @@
 package com.shiguang.blog.security;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import jakarta.servlet.http.HttpServletResponse;
+import java.util.Map;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
+import org.springframework.http.MediaType;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
@@ -16,14 +20,25 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 @EnableWebSecurity
 public class SecurityConfig {
   private final JwtAuthFilter jwtAuthFilter;
+  private final ObjectMapper objectMapper;
 
-  public SecurityConfig(JwtAuthFilter jwtAuthFilter) {
+  public SecurityConfig(JwtAuthFilter jwtAuthFilter, ObjectMapper objectMapper) {
     this.jwtAuthFilter = jwtAuthFilter;
+    this.objectMapper = objectMapper;
   }
 
   @Bean
   public PasswordEncoder passwordEncoder() {
     return new BCryptPasswordEncoder();
+  }
+
+  /** 统一写出 {ok:false,error:...},避免 Security 返回 Spring 原生错误结构。 */
+  private void writeError(HttpServletResponse response, int status, String message)
+      throws java.io.IOException {
+    response.setStatus(status);
+    response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+    response.setCharacterEncoding("UTF-8");
+    objectMapper.writeValue(response.getWriter(), Map.of("ok", false, "error", message));
   }
 
   @Bean
@@ -51,6 +66,12 @@ public class SecurityConfig {
                         .permitAll()
                     .anyRequest()
                         .authenticated())
+        .exceptionHandling(
+            ex ->
+                ex.authenticationEntryPoint(
+                        (req, res, e) -> writeError(res, 401, "请先登录"))
+                    .accessDeniedHandler(
+                        (req, res, e) -> writeError(res, 403, "没有权限执行此操作")))
         .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
     return http.build();
   }

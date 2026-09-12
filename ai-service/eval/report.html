@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>uswrite RAG 检索评测报告</title>
+<style>
+  :root { --ink:#0f172a; --sub:#64748b; --line:#e2e8f0; --bg:#f8fafc;
+          --card:#ffffff; --accent:#6366f1; --good:#16a34a; }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body { font-family:-apple-system,"Segoe UI","Microsoft YaHei",sans-serif;
+         background:var(--bg); color:var(--ink); line-height:1.7; }
+  .wrap { max-width:960px; margin:0 auto; padding:40px 24px 80px; }
+  header { padding:48px 24px; background:linear-gradient(135deg,#4f46e5,#7c3aed);
+           color:#fff; border-radius:16px; margin-bottom:32px; }
+  header h1 { font-size:28px; margin-bottom:12px; }
+  header p { opacity:.92; font-size:15px; }
+  .badges { margin-top:20px; display:flex; flex-wrap:wrap; gap:10px; }
+  .badge { background:rgba(255,255,255,.16); padding:6px 14px; border-radius:999px;
+           font-size:13px; }
+  h2 { font-size:20px; margin:40px 0 16px; padding-left:12px; border-left:4px solid var(--accent); }
+  h3 { font-size:16px; margin:24px 0 10px; }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:12px;
+          padding:24px; margin-bottom:16px; }
+  .kv { display:grid; grid-template-columns:repeat(3,1fr); gap:16px; }
+  .kv .cell { background:#f1f5f9; border-radius:10px; padding:18px; text-align:center; }
+  .kv .num { font-size:28px; font-weight:700; color:var(--accent); }
+  .kv .lbl { font-size:13px; color:var(--sub); margin-top:4px; }
+  table { width:100%; border-collapse:collapse; font-size:14px; }
+  th,td { padding:10px 12px; text-align:center; border-bottom:1px solid var(--line); }
+  th { background:#f1f5f9; color:var(--sub); font-weight:600; }
+  td:first-child,th:first-child { text-align:left; }
+  tr.hl td { background:#eef2ff; font-weight:600; }
+  .charts { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+  @media (max-width:720px) { .charts{grid-template-columns:1fr} .kv{grid-template-columns:1fr} }
+  .chart { background:var(--card); border:1px solid var(--line); border-radius:12px;
+           padding:18px; }
+  .chart-title { font-size:14px; font-weight:600; margin-bottom:14px; color:var(--ink); }
+  .bar-row { display:flex; align-items:center; gap:10px; margin-bottom:10px; }
+  .bar-label { width:120px; font-size:12px; color:var(--sub); flex-shrink:0; }
+  .bar-track { flex:1; background:#f1f5f9; border-radius:6px; height:20px; overflow:hidden; }
+  .bar-fill { height:100%; border-radius:6px; transition:width .4s; }
+  .bar-val { width:56px; font-size:12px; font-weight:600; text-align:right; flex-shrink:0; }
+  ul { padding-left:22px; }
+  li { margin-bottom:8px; font-size:14px; }
+  .note { font-size:13px; color:var(--sub); background:#fffbeb; border:1px solid #fde68a;
+          border-radius:10px; padding:14px 16px; margin:16px 0; }
+  footer { margin-top:48px; font-size:12px; color:var(--sub); text-align:center; }
+  code { background:#f1f5f9; padding:2px 6px; border-radius:4px; font-size:13px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <h1>uswrite · RAG 检索评测报告</h1>
+  <p>对站内 AI 助手检索链路的三策略对比评测 —— 关键词检索(BM25)、旧线性加权、RRF 融合。</p>
+  <div class="badges">
+    <span class="badge">评测集 40 条</span>
+    <span class="badge">关键词型 22 条</span>
+    <span class="badge">语义型 18 条</span>
+    <span class="badge">top-k = 5</span>
+    <span class="badge">生成于 2026-09-12 23:14</span>
+  </div>
+</header>
+
+<h2>结论速览</h2>
+<div class="card"><div class="kv">
+  <div class="cell"><div class="num">97.5%</div><div class="lbl">Hit@5 命中率</div></div>
+  <div class="cell"><div class="num">96.6%</div><div class="lbl">Recall@5 召回率</div></div>
+  <div class="cell"><div class="num">0.943</div><div class="lbl">MRR 平均倒数排名</div></div>
+  <div class="cell"><div class="num">0.947</div><div class="lbl">NDCG@5</div></div>
+  <div class="cell"><div class="num">94.4%</div><div class="lbl">语义型 Hit@5</div></div>
+  <div class="cell"><div class="num">100.0%</div><div class="lbl">关键词型 Hit@5</div></div>
+</div></div>
+
+<div class="note">
+  <b>核心结论:</b>当前采用的 <b>RRF(Reciprocal Rank Fusion)融合策略</b>在全部 40 条评测集上
+  达到 <b>Hit@5 97.5%</b>、<b>Recall@5 96.6%</b>、<b>MRR 0.943</b>。
+  相比纯关键词 BM25(语义型 Hit 仅 77.8%),引入语义向量并把两路按<b>排名</b>融合后,语义型命中率提升到
+  94.4%,且在关键词型上保持 100% 命中,做到「既要关键词精确、也要语义召回」。
+</div>
+
+<h2>指标体系说明</h2>
+<div class="card">
+<ul>
+  <li><b>Hit@k</b>:top-k 结果里是否命中至少一个相关文档(命中率)。</li>
+  <li><b>Recall@k</b>:命中的相关文档数 / 该查询全部相关文档数(召回率)。</li>
+  <li><b>Precision@k</b>:命中的相关文档数 / k(精确率)。注:多数查询只标 1 个相关文档,故此项整体偏低、可对比相对高低。</li>
+  <li><b>MRR</b>:第一个相关文档排名的倒数平均(平均倒数排名)。</li>
+  <li><b>NDCG@k</b>:归一化折损累计增益,同时考虑「是否相关」与「排序位置」。</li>
+  <li><b>MAP@k</b>:平均精度均值,对排序质量更敏感。</li>
+</ul>
+</div>
+
+<h2>三策略对比(全量指标)</h2>
+<div class="card">
+<table>
+<thead><tr><th>分组</th><th>策略</th><th>Hit@5</th><th>Recall@5</th><th>Precision@5</th><th>MRR</th><th>NDCG@5</th><th>MAP@5</th></tr></thead>
+<tbody><tr><td>全部</td><td>BM25(关键词)</td><td>90.0%</td><td>88.6%</td><td>21.0%</td><td>0.802</td><td>0.825</td><td>0.795</td></tr><tr><td>全部</td><td>线性加权(旧)</td><td>97.5%</td><td>96.2%</td><td>22.5%</td><td>0.950</td><td>0.950</td><td>0.937</td></tr><tr class="hl"><td>全部</td><td>RRF 融合(当前)</td><td>97.5%</td><td>96.6%</td><td>23.0%</td><td>0.943</td><td>0.947</td><td>0.933</td></tr><tr><td>关键词型</td><td>BM25(关键词)</td><td>100.0%</td><td>97.4%</td><td>25.5%</td><td>0.955</td><td>0.962</td><td>0.942</td></tr><tr><td>关键词型</td><td>线性加权(旧)</td><td>100.0%</td><td>97.6%</td><td>25.5%</td><td>1.000</td><td>0.988</td><td>0.976</td></tr><tr class="hl"><td>关键词型</td><td>RRF 融合(当前)</td><td>100.0%</td><td>98.3%</td><td>26.4%</td><td>1.000</td><td>0.994</td><td>0.983</td></tr><tr><td>语义型</td><td>BM25(关键词)</td><td>77.8%</td><td>77.8%</td><td>15.6%</td><td>0.616</td><td>0.657</td><td>0.616</td></tr><tr><td>语义型</td><td>线性加权(旧)</td><td>94.4%</td><td>94.4%</td><td>18.9%</td><td>0.889</td><td>0.903</td><td>0.889</td></tr><tr class="hl"><td>语义型</td><td>RRF 融合(当前)</td><td>94.4%</td><td>94.4%</td><td>18.9%</td><td>0.872</td><td>0.890</td><td>0.872</td></tr></tbody>
+</table>
+</div>
+
+<h2>指标可视化</h2>
+<div class="charts"><div class="chart"><div class="chart-title">全部 · Hit@5</div><div class="bar-row"><span class="bar-label">BM25(关键词)</span><div class="bar-track"><div class="bar-fill" style="width:90.0%;background:#94a3b8"></div></div><span class="bar-val">90.0%</span></div><div class="bar-row"><span class="bar-label">线性加权(旧)</span><div class="bar-track"><div class="bar-fill" style="width:97.5%;background:#f59e0b"></div></div><span class="bar-val">97.5%</span></div><div class="bar-row"><span class="bar-label">RRF 融合(当前)</span><div class="bar-track"><div class="bar-fill" style="width:97.5%;background:#6366f1"></div></div><span class="bar-val">97.5%</span></div></div><div class="chart"><div class="chart-title">语义型 · Hit@5</div><div class="bar-row"><span class="bar-label">BM25(关键词)</span><div class="bar-track"><div class="bar-fill" style="width:77.8%;background:#94a3b8"></div></div><span class="bar-val">77.8%</span></div><div class="bar-row"><span class="bar-label">线性加权(旧)</span><div class="bar-track"><div class="bar-fill" style="width:94.4%;background:#f59e0b"></div></div><span class="bar-val">94.4%</span></div><div class="bar-row"><span class="bar-label">RRF 融合(当前)</span><div class="bar-track"><div class="bar-fill" style="width:94.4%;background:#6366f1"></div></div><span class="bar-val">94.4%</span></div></div><div class="chart"><div class="chart-title">全部 · MRR</div><div class="bar-row"><span class="bar-label">BM25(关键词)</span><div class="bar-track"><div class="bar-fill" style="width:80.2%;background:#94a3b8"></div></div><span class="bar-val">0.802</span></div><div class="bar-row"><span class="bar-label">线性加权(旧)</span><div class="bar-track"><div class="bar-fill" style="width:95.0%;background:#f59e0b"></div></div><span class="bar-val">0.950</span></div><div class="bar-row"><span class="bar-label">RRF 融合(当前)</span><div class="bar-track"><div class="bar-fill" style="width:94.3%;background:#6366f1"></div></div><span class="bar-val">0.943</span></div></div><div class="chart"><div class="chart-title">语义型 · MRR</div><div class="bar-row"><span class="bar-label">BM25(关键词)</span><div class="bar-track"><div class="bar-fill" style="width:61.6%;background:#94a3b8"></div></div><span class="bar-val">0.616</span></div><div class="bar-row"><span class="bar-label">线性加权(旧)</span><div class="bar-track"><div class="bar-fill" style="width:88.9%;background:#f59e0b"></div></div><span class="bar-val">0.889</span></div><div class="bar-row"><span class="bar-label">RRF 融合(当前)</span><div class="bar-track"><div class="bar-fill" style="width:87.2%;background:#6366f1"></div></div><span class="bar-val">0.872</span></div></div><div class="chart"><div class="chart-title">全部 · NDCG@5</div><div class="bar-row"><span class="bar-label">BM25(关键词)</span><div class="bar-track"><div class="bar-fill" style="width:82.5%;background:#94a3b8"></div></div><span class="bar-val">0.825</span></div><div class="bar-row"><span class="bar-label">线性加权(旧)</span><div class="bar-track"><div class="bar-fill" style="width:95.0%;background:#f59e0b"></div></div><span class="bar-val">0.950</span></div><div class="bar-row"><span class="bar-label">RRF 融合(当前)</span><div class="bar-track"><div class="bar-fill" style="width:94.7%;background:#6366f1"></div></div><span class="bar-val">0.947</span></div></div><div class="chart"><div class="chart-title">语义型 · NDCG@5</div><div class="bar-row"><span class="bar-label">BM25(关键词)</span><div class="bar-track"><div class="bar-fill" style="width:65.7%;background:#94a3b8"></div></div><span class="bar-val">0.657</span></div><div class="bar-row"><span class="bar-label">线性加权(旧)</span><div class="bar-track"><div class="bar-fill" style="width:90.3%;background:#f59e0b"></div></div><span class="bar-val">0.903</span></div><div class="bar-row"><span class="bar-label">RRF 融合(当前)</span><div class="bar-track"><div class="bar-fill" style="width:89.0%;background:#6366f1"></div></div><span class="bar-val">0.890</span></div></div></div>
+<div class="charts" style="margin-top:16px"><div class="chart"><div class="chart-title">召回率 Recall@5 / Recall@10(全部)</div><div class="bar-row"><span class="bar-label">BM25(关键词)</span><div class="bar-track"><div class="bar-fill" style="width:88.6%;background:#94a3b8"></div></div><span class="bar-val">88.6%</span></div><div class="bar-row"><span class="bar-label">线性加权(旧)</span><div class="bar-track"><div class="bar-fill" style="width:96.2%;background:#f59e0b"></div></div><span class="bar-val">96.2%</span></div><div class="bar-row"><span class="bar-label">RRF 融合(当前)</span><div class="bar-track"><div class="bar-fill" style="width:96.6%;background:#6366f1"></div></div><span class="bar-val">96.6%</span></div></div><div class="chart"><div class="chart-title">Recall@10(全部)</div><div class="bar-row"><span class="bar-label">BM25(关键词)</span><div class="bar-track"><div class="bar-fill" style="width:95.0%;background:#94a3b8"></div></div><span class="bar-val">95.0%</span></div><div class="bar-row"><span class="bar-label">线性加权(旧)</span><div class="bar-track"><div class="bar-fill" style="width:97.5%;background:#f59e0b"></div></div><span class="bar-val">97.5%</span></div><div class="bar-row"><span class="bar-label">RRF 融合(当前)</span><div class="bar-track"><div class="bar-fill" style="width:100.0%;background:#6366f1"></div></div><span class="bar-val">100.0%</span></div></div></div>
+
+<h2>语义型检索深挖</h2>
+<div class="card">
+<p>语义型问题(换一种说法、不含原文关键词)是检验向量检索价值的关键。RRF 在语义型上
+Hit@5 达到 94.4%(18 条),比纯 BM25 的
+77.8% 提升明显。</p>
+<h3>RRF 仍未命中的语义型查询</h3>
+<ul><li><b>和恋人分隔两地怎么相处</b> → 相关文章 #15,实际检索前5:#39 #16 #30 #33 #13</li></ul>
+</div>
+
+<h2>检索技术链路</h2>
+<div class="card">
+<ol>
+  <li><b>分块</b>:按 Markdown 标题切分,单块目标 600 字(上限 1200),块首带标题作上下文。</li>
+  <li><b>双路召回</b>:BM25(jieba 分词 + TF/IDF + 长度归一 k1=1.5,b=0.75)+ 语义向量(text-embedding-v3,1024 维)余弦相似度。</li>
+  <li><b>RRF 融合</b>:Reciprocal Rank Fusion(k=60)按<b>排名</b>融合两路,规避不同量纲直接加权的问题。</li>
+  <li><b>查询改写</b>:多轮追问先用 LLM 补全指代,改写成独立问题再检索。</li>
+</ol>
+</div>
+
+<footer>uswrite 项目 · 检索评测 · 报告由 <code>eval/report.py</code> 自动生成</footer>
+</div>
+</body>
+</html>

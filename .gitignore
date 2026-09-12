@@ -46,7 +46,7 @@ __pycache__/
 ai-service/*.log
 ai-service/.venv
 
-# 本机工具与 WorkBuddy 项目数据(不提交)
+# 本机工具与本地项目数据(不提交)
 /.workbuddy/
 /.dshtools/
 
@@ -72,9 +72,7 @@ next-env.d.ts
 /backend/server-run*.log
 /fe-dev*.log
 /fe-dev-err*.log
-# 私有备忘录与临时脚本
-/STARTUP.md
-/CHAT_SUMMARY.md
+# 临时脚本
 /flip.ps1
 /backend/run.args
 # 图片处理临时产物

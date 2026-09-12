@@ -1,7 +1,9 @@
-"""RAG 检索:与 Java 端 RAGService 行为对齐。
+"""RAG 检索:与 Java 端 RAGService 行为对齐,并在其基础上增强。
 
 - 检索范围 = 站内已发布文章分块(rag_chunks)+ 管理员知识条目(rag_entries)。
-- 混合检索 = BM25(jieba 分词)+ 语义向量余弦,权重 0.6 语义 + 0.4 关键词。
+- 混合检索 = BM25(jieba 分词)+ 语义向量余弦,用 RRF(Reciprocal Rank Fusion)按排名融合,
+  默认 k=60;相比把不同量纲的分数直接线性加权,RRF 更稳健(旧 weighted 策略保留供评测对比)。
+- 多轮追问先做 query 改写,再检索;生成基于用户原始问题。
 - 知识库为空返回 None;未配置 LLM 时走降级回答。
 """
 from __future__ import annotations
@@ -25,8 +27,13 @@ SYSTEM_PROMPT = (
 )
 
 REWRITE_PROMPT = (
-    "你是检索改写助手。根据对话历史,把用户的当前问题改写成一个独立、完整的检索问题,"
-    "补全指代和省略的信息,使其脱离上下文也能被理解。只输出改写后的问题,不要任何解释。"
+    "你是检索改写助手。根据对话历史,把用户的当前问题改写成一个独立、完整的检索问题。"
+    "要求:\n"
+    "1. 把代词和省略补全:如“它 / 这个 / 那篇 / 上面说的”等,必须替换成历史中明确提到的"
+    "具体对象(优先取具体标题名、主题词);若历史里出现了文章标题,就把标题写进改写后的问题。\n"
+    "2. 保留原问题的检索意图,不要扩写、不要回答、不要加入历史中没有的信息。\n"
+    "3. 改写结果应是一句简短的问题,不超过 50 字。\n"
+    "只输出改写后的问题本身,不要任何解释、前缀或引号。"
 )
 
 
@@ -256,22 +263,57 @@ def retrieve(question: str, strategy: str = "rrf", top_k: int | None = None,
     return [items[i] for i in order[:top_k]]
 
 
+def _history_for_rewrite(history: list[dict], rounds: int = 6, assistant_chars: int = 200) -> str:
+    """把对话历史压成适合改写的文本。
+
+    - 取最近 rounds 条消息;
+    - assistant 的长回答截断,避免稀释指代线索,同时保留其中出现的标题/主题词。
+    """
+    parts: list[str] = []
+    for h in history[-rounds:]:
+        role = h.get("role")
+        if role not in ("user", "assistant"):
+            continue
+        content = (h.get("content") or "").strip()
+        if not content:
+            continue
+        if role == "assistant" and len(content) > assistant_chars:
+            content = content[:assistant_chars] + "…"
+        parts.append(f"{'用户' if role == 'user' else '助手'}:{content}")
+    return "\n".join(parts)
+
+
 def rewrite_query(question: str, history: list[dict] | None) -> str:
-    """多轮场景下,把当前追问改写成独立完整的问题,用于检索;单轮直接复用原问题。"""
+    """多轮场景下,把当前追问改写成独立完整的问题,用于检索;单轮直接复用原问题。
+
+    改写结果会做基本校验(非空、不像解释、长度合理),异常时回退原问题,避免污染检索。
+    """
     if not history or not config.llm_enabled():
         return question
-    hist_text = "\n".join(f"{h.get('role')}: {h.get('content')}" for h in history[-4:])
+    hist_text = _history_for_rewrite(history)
+    if not hist_text:
+        return question
     msgs = [
         {"role": "system", "content": REWRITE_PROMPT},
         {"role": "user", "content": f"对话历史:\n{hist_text}\n\n当前问题:{question}"},
     ]
     try:
-        rewritten = chat(msgs).strip()
-        if rewritten and rewritten != question:
-            return rewritten
+        rewritten = (chat(msgs) or "").strip()
     except Exception:
-        pass
-    return question
+        return question
+
+    # 清理模型可能带出的前缀/引号
+    rewritten = rewritten.strip().strip("“”\"'")
+    for prefix in ("改写后的问题:", "改写后的问题：", "问题:", "问题：", "改写:"):
+        if rewritten.startswith(prefix):
+            rewritten = rewritten[len(prefix):].strip()
+
+    # 校验:非空、与原问题不同、长度合理、不像是解释性长句
+    if not rewritten or rewritten == question:
+        return question
+    if len(rewritten) > 60 or "\n" in rewritten:
+        return question
+    return rewritten
 
 
 # ---------- 检索计划 ----------

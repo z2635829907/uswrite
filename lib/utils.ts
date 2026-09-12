@@ -1,15 +1,5 @@
-import crypto from "node:crypto";
-
 export function cn(...parts: Array<string | false | null | undefined>) {
   return parts.filter(Boolean).join(" ");
-}
-
-export function randomSlug() {
-  return (
-    Date.now().toString(36) +
-    "-" +
-    crypto.randomBytes(4).toString("hex")
-  );
 }
 
 export function formatDate(ts: number | null) {
