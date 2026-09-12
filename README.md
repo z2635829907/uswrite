@@ -105,7 +105,7 @@ npm run build && npm run start
 
 **索引同步**(`ai-service/app/indexer.py`):启动时全量增量建索引,之后每 15 分钟巡检一次;文章审核状态变化、内容更新都会重建对应分块。
 
-**评测**(`ai-service/eval/`):内置 40 条问答数据集(关键词型 22 / 语义型 18),对比 `bm25` / `weighted`(旧线性加权)/ `rrf` 三种策略的完整检索指标——**Hit@k、Recall@k、Precision@k、MRR、NDCG@k、MAP@k**。运行 `python eval/eval.py` 得逐条明细,`python eval/report.py` 生成可视化报告 `report.html`。当前 RRF 策略:Hit@5 **97.5%**、Recall@5 **96.6%**、MRR **0.943**;语义型命中率由纯 BM25 的 77.8% 提升至 94.4%。
+**评测**(`ai-service/eval/`):内置 40 条问答数据集(关键词型 22 / 语义型 18),对比 `bm25` / `weighted`(旧线性加权)/ `rrf` 三种策略的完整检索指标——**Hit@k、Recall@k、Precision@k、MRR、NDCG@k、MAP@k**。运行 `python eval/eval.py` 得逐条明细,`python eval/report.py` 生成可视化报告 `report.html`。当前 RRF 策略:Hit@5 **97.5%**、Recall@5 **96.6%**、MRR **0.943**;语义型命中率由纯 BM25 的 77.8% 提升至 94.4%。完整指标对比表见 [`ai-service/eval/README.md`](ai-service/eval/README.md)。
 
 ## 技术栈
 
